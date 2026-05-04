@@ -1073,15 +1073,9 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           pw.Text('FINANCIAL & ECOLOGICAL IMPACT:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)), 
           pw.Text('• Encroached Area: $_area Sq. Meters\n• Estimated Value: Rs ${(_val/10000000).toStringAsFixed(2)} Crores\n• Ecology Loss (NDVI): -$_veg% Vegetation\n• PMAY Rehabilitation Need: $_rehab Families', style: const pw.TextStyle(fontSize: 12, lineSpacing: 2))]); 
       })); 
-      await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save(), name: 'Gravity_Dossier.pdf'); 
-      try {
-        final subject = Uri.encodeComponent('AI Analysis Report: ${_searchCtrl.text.toUpperCase()}');
-        final body = Uri.encodeComponent('Target Sector: ${_searchCtrl.text.toUpperCase()}\nCoordinates: ${_loc.latitude}, ${_loc.longitude}\n\nHigh-risk illegal construction detected.');
-        final uri = Uri.parse('mailto:kunalsahu812026@gmail.com?subject=$subject&body=$body');
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri);
-        }
-      } catch(e) {}
+      final pdfBytes = await pdf.save();
+      await Printing.sharePdf(bytes: pdfBytes, filename: 'Gravity_Dossier.pdf'); 
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("If your device supports it, select your Email app to attach the PDF automatically."), backgroundColor: Colors.green));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("PDF Error: $e"), backgroundColor: Colors.red));
       print("PDF Error: $e");
