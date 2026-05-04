@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravity AI | Tensor Titans</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;800&display=swap');
+        
+        body { margin: 0; padding: 0; overflow: hidden; font-family: 'Montserrat', sans-serif; background: #000; color: white; }
+
+        /* 3D Earth Background */
+        #earth-container {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 1; transition: opacity 1.5s ease-in-out;
+            background-image: radial-gradient(circle, #0f172a 0%, #000000 100%);
+        }
+
+        /* Map Container */
+        #map-container {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 2; opacity: 0; pointer-events: none; transition: opacity 1.5s ease-in-out;
+        }
+
+        /* Glassmorphism UI Sidebar */
+        #sidebar {
+            position: absolute; top: 0; left: 0; width: 420px; height: 100vh;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1); z-index: 10;
+            display: flex; flex-direction: column; padding: 50px 40px; box-sizing: border-box;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+        }
+
+        h1 { font-size: 38px; font-weight: 800; letter-spacing: 3px; margin: 0; text-shadow: 0 0 20px rgba(56, 189, 248, 0.5); }
+        h3 { font-size: 12px; color: #38bdf8; letter-spacing: 2px; margin-top: -5px; }
+
+        input {
+            background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.2); color: white;
+            padding: 18px 20px; border-radius: 12px; font-size: 14px; margin-top: 40px; outline: none; transition: 0.3s;
+        }
+        input:focus { border-color: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
+
+        button {
+            background: linear-gradient(90deg, #ef4444, #991b1b); color: white; border: none;
+            padding: 18px 20px; border-radius: 12px; font-size: 14px; font-weight: bold; margin-top: 20px;
+            cursor: pointer; letter-spacing: 1.5px; transition: 0.3s; box-shadow: 0 5px 20px rgba(239, 68, 68, 0.4);
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(239, 68, 68, 0.6); }
+        button:disabled { background: #475569; cursor: not-allowed; box-shadow: none; }
+
+        #metrics-box {
+            margin-top: 30px; padding: 20px; border-radius: 12px; background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1); font-size: 13px; line-height: 1.6; display: none;
+        }
+
+        #status-text { margin-top: 30px; color: #94a3b8; font-weight: bold; font-size: 12px; letter-spacing: 1px;}
+    </style>
+</head>
+<body>
+
+    <div id="earth-container"></div>
+    
+    <div id="map-container"></div>
+
+    <div id="sidebar">
+        <h1>Gravity AI</h1>
+        <h3>TEAM TENSOR TITANS</h3>
+        
+        <input type="text" id="locationInput" placeholder="Enter Target City (e.g. Bhopal)...">
+        <button id="scanBtn" onclick="startScan()">INITIATE ORBITAL SCAN</button>
+        
+        <div id="status-text">SYSTEM: WAITING FOR TARGET...</div>
+
+        <div id="metrics-box">
+            <b style="color: #fca5a5; font-size: 15px;">📍 TARGET ACQUIRED</b><br><br>
+            <b>Coordinates:</b> <span id="c-lat"></span>, <span id="c-lon"></span><br>
+            <b>Risk Level:</b> <span style="color: #ef4444; font-weight: bold;">CRITICAL (Encroachment)</span><br>
+            <b>Est. Area Impacted:</b> 1,450 sqm<br>
+            <b>Spectral NDVI:</b> -0.15 (Vegetation Loss)<br><br>
+            <span style="color: #fbbf24;"><b>AI DIRECTIVE:</b></span> Immediate action required under Sec 144.<br><br>
+            <span style="color: #34d399; font-weight:bold;">✔ Dossier Dispatched to Officer Pranav Dubey.</span>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. HYPER-REALISTIC 3D EARTH SETUP
+        // ==========================================
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('earth-container').appendChild(renderer.domElement);
+
+        const texLoader = new THREE.TextureLoader();
+        
+        // Textures
+        const earthColor = texLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
+        const earthBump = texLoader.load('https://unpkg.com/three-globe/example/img/earth-topology.png');
+        const earthWater = texLoader.load('https://unpkg.com/three-globe/example/img/earth-water.png');
+        const cloudTex = texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png');
+
+        // Earth
+        const earthMat = new THREE.MeshPhongMaterial({ map: earthColor, bumpMap: earthBump, bumpScale: 0.05, specularMap: earthWater, specular: new THREE.Color('grey') });
+        const earth = new THREE.Mesh(new THREE.SphereGeometry(2, 64, 64), earthMat);
+        scene.add(earth);
+
+        // Clouds
+        const cloudMat = new THREE.MeshPhongMaterial({ map: cloudTex, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+        const clouds = new THREE.Mesh(new THREE.SphereGeometry(2.03, 64, 64), cloudMat);
+        scene.add(clouds);
+
+        // Lights
+        scene.add(new THREE.AmbientLight(0x222222));
+        const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+        sun.position.set(5, 3, 5);
+        scene.add(sun);
+        camera.position.z = 6;
+
+        function animateEarth() {
+            requestAnimationFrame(animateEarth);
+            earth.rotation.y += 0.001;
+            clouds.rotation.y += 0.0015;
+            renderer.render(scene, camera);
+        }
+        animateEarth();
+
+        // ==========================================
+        // 2. LEAFLET SATELLITE MAP SETUP
+        // ==========================================
+        const map = L.map('map-container', { zoomControl: false }).setView([22.0, 79.0], 4);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Gravity AI Satellite'
+        }).addTo(map);
+
+        let anomalyBox;
+
+        // ==========================================
+        // 3. SCANNING LOGIC & ANIMATIONS
+        // ==========================================
+        async function startScan() {
+            const loc = document.getElementById("locationInput").value;
+            if(!loc) return;
+
+            const btn = document.getElementById("scanBtn");
+            const status = document.getElementById("status-text");
+            
+            btn.disabled = true;
+            btn.innerText = "ESTABLISHING LINK...";
+            status.innerHTML = "🛰️ Connecting to Orbit for " + loc.toUpperCase() + "...";
+            document.getElementById("metrics-box").style.display = "none";
+
+            try {
+                // Fetch Coordinates (Geocoding)
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${loc}, India&format=json&limit=1`);
+                const data = await res.json();
+
+                if(data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+
+                    status.innerHTML = "🧠 LAYER 2: SIAM-UNET PIXEL DIFFERENCING...";
+                    
+                    // Simulate AI Processing time
+                    setTimeout(() => {
+                        status.innerHTML = "✅ SCAN COMPLETE.";
+                        btn.innerText = "SCAN COMPLETE";
+                        btn.style.background = "linear-gradient(90deg, #10b981, #047857)"; // Turn Green
+
+                        // TRANSITION: Fade Out Earth, Fade In Map
+                        document.getElementById('earth-container').style.opacity = '0';
+                        document.getElementById('map-container').style.opacity = '1';
+                        document.getElementById('map-container').style.pointerEvents = 'auto';
+
+                        // FLY TO LOCATION (Cinematic)
+                        setTimeout(() => {
+                            map.flyTo([lat, lon], 17, { duration: 3.5 });
+
+                            // Draw Red Anomaly Box after flying
+                            setTimeout(() => {
+                                if(anomalyBox) map.removeLayer(anomalyBox);
+                                anomalyBox = L.polygon([
+                                    [lat - 0.001, lon - 0.001],
+                                    [lat - 0.001, lon + 0.001],
+                                    [lat + 0.001, lon + 0.001],
+                                    [lat + 0.001, lon - 0.001]
+                                ], { color: 'red', fillColor: '#f03', fillOpacity: 0.3 }).addTo(map);
+
+                                // Show Metrics
+                                document.getElementById("c-lat").innerText = lat.toFixed(4);
+                                document.getElementById("c-lon").innerText = lon.toFixed(4);
+                                document.getElementById("metrics-box").style.display = "block";
+                                document.getElementById("metrics-box").style.border = "1px solid #ef4444";
+                                document.getElementById("metrics-box").style.background = "rgba(239, 68, 68, 0.1)";
+                                
+                                btn.disabled = false; // Enable for next scan
+                                btn.innerText = "INITIATE NEW SCAN";
+                            }, 3500); // Wait for flyTo to finish
+                        }, 500);
+                    }, 2000); // 2 sec AI simulation
+                } else {
+                    status.innerHTML = "❌ TARGET NOT FOUND.";
+                    btn.disabled = false;
+                    btn.innerText = "TRY AGAIN";
+                }
+            } catch(e) {
+                status.innerHTML = "❌ NETWORK ERROR.";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
