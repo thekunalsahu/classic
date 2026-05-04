@@ -338,33 +338,79 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   @override
   Widget build(BuildContext context) {
     if (_booting) return _buildBoot();
-    return Scaffold(
-      backgroundColor: const Color(0xFF070B19),
-      body: Row(
-        children: [
-          _sidebar(),
-          Expanded(
-            child: Column(
-              children: [
-                _topNav(),
-                Expanded(
-                  child: _buildMainContent()
+    
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isMobile = constraints.maxWidth < 1100;
+
+        return Scaffold(
+          backgroundColor: const Color(0xFF070B19),
+          drawer: isMobile ? _mobileDrawer() : null,
+          body: Row(
+            children: [
+              if (!isMobile) _sidebar(),
+              Expanded(
+                child: Column(
+                  children: [
+                    _topNav(isMobile),
+                    Expanded(
+                      child: _buildMainContent(isMobile)
+                    ),
+                    _footer(),
+                  ],
                 ),
-                _footer(),
-              ],
+              )
+            ],
+          ),
+        );
+      }
+    );
+  }
+
+  Widget _mobileDrawer() {
+    return Drawer(
+      backgroundColor: const Color(0xFF0B1221),
+      child: Column(
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(color: Color(0xFF1E293B)),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset("assets/images/logo.png", height: 50),
+                  const SizedBox(height: 10),
+                  const Text("Gravity AI", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                ],
+              ),
             ),
-          )
+          ),
+          _drawerBtn(Icons.dashboard, "Dashboard", _navIndex == 0, tap: () { setState(() => _navIndex = 0); Navigator.pop(context); }),
+          _drawerBtn(Icons.map_outlined, "Map", _navIndex == 1, tap: () { setState(() => _navIndex = 1); Navigator.pop(context); }),
+          _drawerBtn(Icons.description_outlined, "Reports", _navIndex == 2, tap: () { setState(() => _navIndex = 2); Navigator.pop(context); }),
+          if (widget.isOfficer) _drawerBtn(Icons.checklist_rtl_rounded, "Tasks", _navIndex == 3, tap: () { setState(() => _navIndex = 3); Navigator.pop(context); }),
+          const Spacer(),
+          _drawerBtn(Icons.satellite_alt, "Bhu-Prahari", false, color: Colors.orangeAccent, tap: () { Navigator.pop(context); _showBhuPrahari(); }),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  Widget _buildMainContent() {
+  Widget _drawerBtn(IconData i, String label, bool act, {Color? color, VoidCallback? tap}) {
+    return ListTile(
+      leading: Icon(i, color: act ? Colors.cyanAccent : (color ?? Colors.white54)),
+      title: Text(label, style: TextStyle(color: act ? Colors.cyanAccent : (color ?? Colors.white54), fontWeight: act ? FontWeight.bold : FontWeight.normal)),
+      onTap: tap,
+      selected: act,
+      selectedTileColor: Colors.cyanAccent.withOpacity(0.1),
+    );
+  }
+
+  Widget _buildMainContent(bool isMobile) {
     if (_navIndex == 1) {
-      // Full Map View
-      return Padding(padding: const EdgeInsets.all(12.0), child: _mapView());
+      return Padding(padding: const EdgeInsets.all(12.0), child: _mapView(isMobile));
     } else if (_navIndex == 2) {
-      // Reports View
       return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         const Icon(Icons.description, size: 80, color: Colors.white24),
         const SizedBox(height: 20),
@@ -373,7 +419,6 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         const Text("No generated reports found for this sector.", style: TextStyle(color: Colors.white54))
       ]));
     } else if (_navIndex == 3) {
-      // Tasks View
       return Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -420,8 +465,20 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       );
     }
     
-    // Default: Dashboard View (0)
-    return Padding(padding: const EdgeInsets.all(12.0), child: Row(children: [Expanded(flex: 7, child: _mapView()), const SizedBox(width: 12), _rightPanel()]));
+    if (isMobile) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            SizedBox(height: 400, child: _mapView(isMobile)),
+            const SizedBox(height: 12),
+            _rightPanel(isMobile),
+          ],
+        ),
+      );
+    }
+
+    return Padding(padding: const EdgeInsets.all(12.0), child: Row(children: [Expanded(flex: 7, child: _mapView(isMobile)), const SizedBox(width: 12), _rightPanel(isMobile)]));
   }
 
   Widget _sidebar() {
@@ -441,33 +498,39 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     return InkWell(onTap: tap, child: Container(width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 15), decoration: BoxDecoration(border: act ? const Border(left: BorderSide(color: Colors.cyanAccent, width: 4)) : null, color: act ? Colors.cyanAccent.withOpacity(0.1) : Colors.transparent), child: Column(children: [Icon(i, color: act ? Colors.cyanAccent : (color ?? Colors.white54), size: 28), const SizedBox(height: 5), Text(label, style: TextStyle(color: act ? Colors.cyanAccent : (color ?? Colors.white54), fontSize: 10), textAlign: TextAlign.center)])));
   }
 
-  Widget _topNav() {
+  Widget _topNav(bool isMobile) {
     return Container(height: 60, padding: const EdgeInsets.symmetric(horizontal: 20), decoration: const BoxDecoration(color: Color(0xFF0B1221), border: Border(bottom: BorderSide(color: Colors.white10))), child: Row(children: [
-      Image.asset("assets/images/logo.png", height: 35), const SizedBox(width: 8), const Text("Gravity AI", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), const SizedBox(width: 15), Container(height: 20, width: 2, color: Colors.white24), const SizedBox(width: 15),
-      Text(widget.isOfficer ? "Officer Dashboard" : "Public Dashboard", style: const TextStyle(color: Colors.white70, fontSize: 16)),
+      if (isMobile) IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => Scaffold.of(context).openDrawer()),
+      Image.asset("assets/images/logo.png", height: 35), const SizedBox(width: 8), const Text("Gravity AI", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
+      if (!isMobile) ...[
+        const SizedBox(width: 15), Container(height: 20, width: 2, color: Colors.white24), const SizedBox(width: 15),
+        Text(widget.isOfficer ? "Officer Dashboard" : "Public Dashboard", style: const TextStyle(color: Colors.white70, fontSize: 16)),
+      ],
       const Spacer(),
-      if (widget.isOfficer) ...[ const Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [Text("Officer Sharma", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)), Text("(ID: OS7892)", style: TextStyle(color: Colors.white54, fontSize: 11))]), const SizedBox(width: 10), const CircleAvatar(backgroundColor: Colors.blueGrey, child: Icon(Icons.person, color: Colors.white)) ]
-      else ...[ const Text("GUEST USER", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 14)) ],
-      const SizedBox(width: 20), IconButton(onPressed: () { _timer?.cancel(); Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => const LandingPage())); }, icon: const Icon(Icons.logout, color: Colors.white54))
+      if (!isMobile) ...[
+        if (widget.isOfficer) ...[ const Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [Text("Officer Sharma", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)), Text("(ID: OS7892)", style: TextStyle(color: Colors.white54, fontSize: 11))]), const SizedBox(width: 10), const CircleAvatar(backgroundColor: Colors.blueGrey, child: Icon(Icons.person, color: Colors.white)) ]
+        else ...[ const Text("GUEST USER", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 14)) ],
+      ],
+      const SizedBox(width: 10), IconButton(onPressed: () { _timer?.cancel(); Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => const LandingPage())); }, icon: const Icon(Icons.logout, color: Colors.white54))
     ]));
   }
 
-  Widget _mapView() {
+  Widget _mapView(bool isMobile) {
     return ClipRRect(borderRadius: BorderRadius.circular(12), child: Stack(children: [
       FlutterMap(mapController: _mapCtrl, options: MapOptions(initialCenter: _loc, initialZoom: _currentZoom), children: [
         TileLayer(urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'),
         PolygonLayer(polygons: _govtPolygons), PolygonLayer(polygons: _anomalyPolygons),
       ]),
-      Positioned(top: 20, right: 20, child: Container(width: 350, decoration: BoxDecoration(color: const Color(0xFF0B1221).withOpacity(0.9), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24)), child: Row(children: [Expanded(child: TextField(controller: _searchCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: "Search Sector/Area...", hintStyle: TextStyle(color: Colors.white54), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 15)), onSubmitted: (_) => _scanning ? null : _runScan())), IconButton(icon: _scanning ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyanAccent)) : const Icon(Icons.search, color: Colors.white), onPressed: _scanning ? null : _runScan)]))),
-      Positioned(top: 20, left: 20, child: Container(decoration: BoxDecoration(color: const Color(0xFF0B1221).withOpacity(0.9), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24)), child: Column(children: [IconButton(icon: const Icon(Icons.add, color: Colors.white), onPressed: () { setState(() => _currentZoom++); _mapCtrl.move(_loc, _currentZoom); }), Container(height: 1, width: 30, color: Colors.white24), IconButton(icon: const Icon(Icons.remove, color: Colors.white), onPressed: () { setState(() => _currentZoom--); _mapCtrl.move(_loc, _currentZoom); })]))),
+      Positioned(top: 15, right: 15, left: isMobile ? 15 : null, child: Container(width: isMobile ? null : 350, decoration: BoxDecoration(color: const Color(0xFF0B1221).withOpacity(0.9), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24)), child: Row(children: [Expanded(child: TextField(controller: _searchCtrl, style: const TextStyle(color: Colors.white, fontSize: 13), decoration: const InputDecoration(hintText: "Search Area...", hintStyle: TextStyle(color: Colors.white54, fontSize: 12), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)), onSubmitted: (_) => _scanning ? null : _runScan())), IconButton(icon: _scanning ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyanAccent)) : const Icon(Icons.search, color: Colors.white, size: 20), onPressed: _scanning ? null : _runScan)]))),
+      if (!isMobile) Positioned(top: 20, left: 20, child: Container(decoration: BoxDecoration(color: const Color(0xFF0B1221).withOpacity(0.9), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24)), child: Column(children: [IconButton(icon: const Icon(Icons.add, color: Colors.white), onPressed: () { setState(() => _currentZoom++); _mapCtrl.move(_loc, _currentZoom); }), Container(height: 1, width: 30, color: Colors.white24), IconButton(icon: const Icon(Icons.remove, color: Colors.white), onPressed: () { setState(() => _currentZoom--); _mapCtrl.move(_loc, _currentZoom); })]))),
     ]));
   }
 
-  Widget _rightPanel() {
-    return Container(width: 380, decoration: BoxDecoration(color: const Color(0xFF0B1221), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)), padding: const EdgeInsets.all(20), child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Widget _rightPanel(bool isMobile) {
+    return Container(width: isMobile ? double.infinity : 380, decoration: BoxDecoration(color: const Color(0xFF0B1221), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)), padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
       Text(_status, style: TextStyle(color: _status.contains("ERROR") ? Colors.redAccent : (_ready ? Colors.greenAccent : Colors.cyanAccent), fontSize: 12, fontWeight: FontWeight.bold)),
       const SizedBox(height: 20),
-      if (!_ready) const Center(child: Padding(padding: EdgeInsets.only(top: 50), child: Text("Waiting for target coordinates to initiate analysis workflow...", textAlign: TextAlign.center, style: TextStyle(color: Colors.white54))))
+      if (!_ready) const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 40), child: Text("Waiting for target coordinates to initiate analysis workflow...", textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 12))))
       else ...[
         const Text("Real-time Stats", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 15),
         _stat("Total Encroached Area", "$_area m²", Colors.white), _stat("Average Risk Score", "$_risk/100", Colors.redAccent),
