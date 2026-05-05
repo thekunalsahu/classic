@@ -30,6 +30,10 @@ app.add_middleware(
 
 GROQ_KEY = os.getenv("GROQ_API_KEY", "your_fallback_key")
 
+@app.get("/")
+async def root():
+    return {"status": "success", "message": "Gravity AI Backend is Live!"}
+
 class ScanRequest(BaseModel):
     lat: float
     lon: float
