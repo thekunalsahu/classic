@@ -96,7 +96,18 @@ class _LandingPageState extends State<LandingPage> {
 
           return Stack(
             children: [
-              Container(width: double.infinity, height: double.infinity, decoration: const BoxDecoration(image: DecorationImage(image: AssetImage(kEarthImg), fit: BoxFit.cover))),
+              Container(
+                width: double.infinity, 
+                height: double.infinity, 
+                color: const Color(0xFF020617), // Deep Dark Blue Fallback
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage(kEarthImg), 
+                    fit: BoxFit.cover,
+                    onError: (_, __) {} // Prevents crash if image missing
+                  )
+                )
+              ),
               Positioned(
                 top: MediaQuery.of(context).size.height * 0.15, left: MediaQuery.of(context).size.width * 0.08, 
                 child: SizedBox(
