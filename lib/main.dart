@@ -16,7 +16,7 @@ import 'dart:js' as js;
 // ========================================================
 // GLOBAL CONFIG
 // ========================================================
-const String kBackendUrl = "https://gravityai-backend.onrender.com/"; 
+const String kBackendUrl = "https://gravityai-backend.onrender.com"; 
 const String kEarthImg = "assets/images/background.png";
 const String kGroqKey = String.fromEnvironment('GROQ_API_KEY', defaultValue: ''); 
 
