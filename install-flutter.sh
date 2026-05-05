@@ -9,11 +9,15 @@ fi
 export PATH="$PATH:`pwd`/flutter/bin"
 
 # Upgrade and config
-flutter doctor
-flutter config --enable-web
+./flutter/bin/flutter doctor
+./flutter/bin/flutter config --enable-web
+
+# Get dependencies
+echo "Fetching dependencies..."
+./flutter/bin/flutter pub get
 
 # Build Web
 echo "Building Flutter Web..."
-flutter build web --release --dart-define=GROQ_API_KEY=$GROQ_API_KEY
+./flutter/bin/flutter build web --release --dart-define=GROQ_API_KEY=$GROQ_API_KEY
 
 echo "Build complete!"
