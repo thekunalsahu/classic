@@ -100,21 +100,21 @@ class _LandingPageState extends State<LandingPage> {
               Positioned(
                 top: MediaQuery.of(context).size.height * 0.15, left: MediaQuery.of(context).size.width * 0.08, 
                 child: SizedBox(
-                  width: 550,
+                  width: isMobile ? MediaQuery.of(context).size.width * 0.84 : 580,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start, 
                     children: [
                       Row(
                         children: [
-                          Image.asset("assets/images/logo.png", height: 85),
+                          Image.asset("assets/images/logo.png", height: isMobile ? 60 : 85),
                           const SizedBox(width: 12),
-                          const Text("Gravity AI", style: TextStyle(fontSize: 65, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -1.0)),
+                          Text("Gravity AI", style: TextStyle(fontSize: isMobile ? 45 : 65, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -1.0)),
                         ],
                       ),
-                      const SizedBox(height: 60), 
+                      SizedBox(height: isMobile ? 30 : 60), 
                       _buildLoginCard("OFFICER PORTAL", Icons.admin_panel_settings, Colors.blueAccent, true),
-                      const SizedBox(height: 30),
+                      SizedBox(height: isMobile ? 20 : 30),
                       _buildLoginCard("PUBLIC ACCESS", Icons.public, Colors.greenAccent, false),
                     ],
                   ),
@@ -123,8 +123,8 @@ class _LandingPageState extends State<LandingPage> {
               Positioned(
                 top: MediaQuery.of(context).size.height * 0.15, right: MediaQuery.of(context).size.width * 0.08, 
                 child: SizedBox(
-                  width: 500,
-                  child: _buildDetailsCard(),
+                  width: isMobile ? 0 : 540,
+                  child: isMobile ? const SizedBox() : _buildDetailsCard(),
                 ),
               ),
             ],
@@ -879,7 +879,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           backgroundColor: const Color(0xFF0F172A), 
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.white24)),
           child: Container(
-            width: 1000,
+            width: isMobile ? MediaQuery.of(context).size.width * 0.95 : 1100,
             constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
             child: Column(
               children: [
@@ -909,16 +909,88 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 ),
                 Container(height: 1, color: Colors.white10),
                 
-                // 2x2 Grid Content
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        // Left Column
-                        Expanded(
+                    child: isMobile 
+                      ? SingleChildScrollView(
                           child: Column(
                             children: [
+                              SizedBox(height: 300, child: _bhuCard(_t("Report Suspected Encroachment", "अतिक्रमण की रिपोर्ट करें"), 
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.02),
+                                          border: Border.all(color: Colors.cyanAccent.withOpacity(0.5), width: 1, style: BorderStyle.solid),
+                                          borderRadius: BorderRadius.circular(8)
+                                        ),
+                                        child: SingleChildScrollView(
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.file_upload_outlined, size: 40, color: Colors.cyanAccent.withOpacity(0.7)),
+                                              const SizedBox(height: 10),
+                                              InkWell(
+                                                onTap: _pickFile,
+                                                child: RichText(textAlign: TextAlign.center, text: TextSpan(children: [
+                                                  TextSpan(text: _t("Drag & Drop Photos or PDF Reports Here or ", "फोटो या पीडीएफ रिपोर्ट यहां खींचें या "), style: const TextStyle(color: Colors.white70)),
+                                                  TextSpan(text: _t("Browse", "ब्राउज़ करें"), style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
+                                                ])),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              )),
+                              const SizedBox(height: 20),
+                              SizedBox(height: 300, child: _bhuCard(_t("Community Scan Analysis", "सामुदायिक स्कैन विश्लेषण"), 
+                                Column(
+                                  children: [
+                                    Expanded(
+                                      child: Stack(
+                                        children: [
+                                          FlutterMap(options: MapOptions(initialCenter: _loc, initialZoom: 16.0), children: [ 
+                                            TileLayer(urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
+                                          ]),
+                                          Center(
+                                            child: Container(
+                                              width: 40, height: 40,
+                                              decoration: BoxDecoration(color: Colors.cyanAccent.withOpacity(0.3), shape: BoxShape.circle),
+                                              child: Center(child: Container(width: 15, height: 15, decoration: const BoxDecoration(color: Colors.cyanAccent, shape: BoxShape.circle))),
+                                            ),
+                                          ),
+                                        ]
+                                      )
+                                    )
+                                  ],
+                                )
+                              )),
+                              const SizedBox(height: 20),
+                              SizedBox(height: 300, child: _bhuCard(_t("Verified Community Reports", "सत्यापित सामुदायिक रिपोर्ट"), 
+                                Column(
+                                  children: [
+                                    _leaderboardItem(1, _t("Rajesh Kumar", "राजेश कुमार"), _t("120 Reports", "120 रिपोर्ट"), Colors.greenAccent.withOpacity(0.2)),
+                                    _leaderboardItem(2, _t("Priya Singh", "प्रिया सिंह"), _t("95 Reports", "95 रिपोर्ट"), Colors.blueAccent.withOpacity(0.2)),
+                                  ]
+                                )
+                              )),
+                            ],
+                          ),
+                        )
+                      : Row(
+                          children: [
+                            // Left Column
+                            Expanded(
+                              child: Column(
+                                children: [
                               // Top Left: Report
                               Expanded(
                                 child: _bhuCard(_t("Report Suspected Encroachment", "अतिक्रमण की रिपोर्ट करें"), 

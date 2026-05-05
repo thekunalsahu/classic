@@ -40,11 +40,6 @@ class ScanRequest(BaseModel):
     sector: Optional[str] = None
 
 
-@app.get("/")
-async def root():
-    return {"message": "Gravity AI Backend is running"}
-
-
 # ========================================================
 # GROQ AI — ENVIRONMENTAL DATA ANALYSIS
 # ========================================================
