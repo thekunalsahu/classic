@@ -108,21 +108,23 @@ class _LandingPageState extends State<LandingPage> {
                 )
               ),
               Positioned(
-                top: MediaQuery.of(context).size.height * 0.15, left: MediaQuery.of(context).size.width * 0.08, 
+                top: 40, left: 40,
+                child: Row(
+                  children: [
+                    Image.asset("assets/images/logo.png", height: isMobile ? 50 : 70),
+                    const SizedBox(width: 12),
+                    Text("Gravity AI", style: TextStyle(fontSize: isMobile ? 35 : 50, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -1.0)),
+                  ],
+                ),
+              ),
+              Positioned(
+                top: MediaQuery.of(context).size.height * 0.22, left: MediaQuery.of(context).size.width * 0.08, 
                 child: SizedBox(
                   width: isMobile ? MediaQuery.of(context).size.width * 0.84 : 580,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start, 
                     children: [
-                      Row(
-                        children: [
-                          Image.asset("assets/images/logo.png", height: isMobile ? 60 : 85),
-                          const SizedBox(width: 12),
-                          Text("Gravity AI", style: TextStyle(fontSize: isMobile ? 45 : 65, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -1.0)),
-                        ],
-                      ),
-                      SizedBox(height: isMobile ? 30 : 60), 
                       _buildLoginCard("OFFICER PORTAL", Icons.admin_panel_settings, Colors.blueAccent, true),
                       SizedBox(height: isMobile ? 20 : 30),
                       _buildLoginCard("PUBLIC ACCESS", Icons.public, Colors.greenAccent, false),
@@ -131,7 +133,7 @@ class _LandingPageState extends State<LandingPage> {
                 ),
               ),
               Positioned(
-                top: MediaQuery.of(context).size.height * 0.15, right: MediaQuery.of(context).size.width * 0.08, 
+                top: MediaQuery.of(context).size.height * 0.22, right: MediaQuery.of(context).size.width * 0.08, 
                 child: SizedBox(
                   width: isMobile ? 0 : 540,
                   child: isMobile ? const SizedBox() : _buildDetailsCard(),
@@ -225,6 +227,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   final TextEditingController _searchCtrl = TextEditingController();
   final TextEditingController _areaCtrl = TextEditingController();
   final MapController _mapCtrl = MapController();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   bool _booting = true;
   double _bootProgress = 0.0;
@@ -251,15 +254,20 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   // New Feature State
   bool _isHindi = false;
   bool _isAnonymous = false;
-  int _karmaPoints = 450;
   final List<Map<String, String>> _chatMsgs = [{"role": "ai", "text": "Hello Officer. I am Gravity AI. How can I assist you with urban administration today?"}];
   bool _showChat = false;
   final TextEditingController _chatCtrl = TextEditingController();
   bool _isSatellite = true; // Satellite Layer Toggle
   bool _showBhuvanWms = false; // Bhuvan WMS Layer Toggle
+  
+  // Geotagged Evidence State
+  List<Map<String, dynamic>> _fieldEvidences = [];
+  bool _droneActive = false;
+  LatLng? _dronePos;
+  Timer? _droneTimer;
 
   @override void initState() { super.initState(); _bootSequence(); }
-  @override void dispose() { _timer?.cancel(); _searchCtrl.dispose(); _chatCtrl.dispose(); super.dispose(); }
+  @override void dispose() { _timer?.cancel(); _droneTimer?.cancel(); _searchCtrl.dispose(); _chatCtrl.dispose(); super.dispose(); }
 
   void _bootSequence() async {
     for (int i = 0; i <= 10; i++) {
@@ -354,7 +362,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         setState(() {
           _scanning = false; _ready = true;
           _status = "✅ ANALYSIS COMPLETE — ${data['accuracy']}% CONFIDENCE";
-          _risk = data['increased_area_pct'] ?? 0;
+          _risk = data['encroaching_count'] != null ? (data['encroaching_count'] * 15).clamp(0, 100) : 0;
           _area = data['area_sqm'] ?? 0;
           _val = (data['land_value'] ?? 0.0).toDouble();
           _fine = (data['penalty'] ?? 0.0).toDouble();
@@ -418,6 +426,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         bool isMobile = constraints.maxWidth < 900;
 
         return Scaffold(
+          key: _scaffoldKey,
           backgroundColor: const Color(0xFF070B19),
           drawer: isMobile ? _mobileDrawer() : null,
           floatingActionButton: widget.isOfficer ? FloatingActionButton.extended(
@@ -449,6 +458,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
   Widget _mobileDrawer() {
     return Drawer(
+      width: MediaQuery.of(context).size.width * 0.75,
       backgroundColor: const Color(0xFF0B1221),
       child: Column(
         children: [
@@ -546,15 +556,17 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     }
     
     if (isMobile) {
-      return SingleChildScrollView(
+      return ListView(
         padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            SizedBox(height: MediaQuery.of(context).size.height * 0.5, child: _mapView(isMobile)),
-            const SizedBox(height: 12),
-            _rightPanel(isMobile),
-          ],
-        ),
+        children: [
+          Container(
+            height: MediaQuery.of(context).size.height * 0.45,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
+            child: _mapView(isMobile)
+          ),
+          const SizedBox(height: 12),
+          _rightPanel(isMobile),
+        ],
       );
     }
 
@@ -580,7 +592,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
   Widget _topNav(bool isMobile) {
     return Container(height: 60, padding: const EdgeInsets.symmetric(horizontal: 20), decoration: const BoxDecoration(color: Color(0xFF0B1221), border: Border(bottom: BorderSide(color: Colors.white10))), child: Row(children: [
-      if (isMobile) IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => Scaffold.of(context).openDrawer()),
+      if (isMobile) IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => _scaffoldKey.currentState?.openDrawer()),
       Image.asset("assets/images/logo.png", height: 35), const SizedBox(width: 8), const Text("Gravity AI", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
       if (!isMobile) ...[
         const SizedBox(width: 15), Container(height: 20, width: 2, color: Colors.white24), const SizedBox(width: 15),
@@ -588,7 +600,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       ],
       const Spacer(),
       if (!isMobile) ...[
-        if (widget.isOfficer) ...[ const Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [Text("Officer Sharma", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)), Text("(ID: OS7892)", style: TextStyle(color: Colors.white54, fontSize: 11))]), const SizedBox(width: 10), const CircleAvatar(backgroundColor: Colors.blueGrey, child: Icon(Icons.person, color: Colors.white)) ]
+        if (widget.isOfficer) ...[ const Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [Text("AUTHORIZED OFFICER", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)), Text("SECURE SESSION ACTIVE", style: TextStyle(color: Colors.white54, fontSize: 10))]), const SizedBox(width: 10), const CircleAvatar(backgroundColor: Colors.blueGrey, child: Icon(Icons.person, color: Colors.white)) ]
         else ...[ const Text("GUEST USER", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 14)) ],
       ],
       const SizedBox(width: 15),
@@ -619,6 +631,9 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           userAgentPackageName: 'com.gravity.ai',
         ),
         PolygonLayer(polygons: _govtPolygons), PolygonLayer(polygons: _anomalyPolygons),
+        if (_droneActive && _dronePos != null) MarkerLayer(markers: [
+          Marker(point: _dronePos!, width: 80, height: 80, child: const Icon(Icons.gps_fixed, color: Colors.redAccent, size: 40))
+        ]),
       ]),
       Positioned(top: 15, right: 15, left: isMobile ? 15 : null, child: Container(width: isMobile ? null : 350, decoration: BoxDecoration(color: const Color(0xFF0B1221).withOpacity(0.9), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24)), child: Row(children: [Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: _searchCtrl, style: const TextStyle(color: Colors.white, fontSize: 13), decoration: const InputDecoration(hintText: "Search City/Sector...", hintStyle: TextStyle(color: Colors.white54, fontSize: 12), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)), onSubmitted: (_) => _scanning ? null : _runScan()), const Divider(height: 1, color: Colors.white24), TextField(controller: _areaCtrl, style: const TextStyle(color: Colors.white, fontSize: 13), decoration: const InputDecoration(hintText: "Specific Locality/Area...", hintStyle: TextStyle(color: Colors.white54, fontSize: 12), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)), onSubmitted: (_) => _scanning ? null : _runScan())])), IconButton(icon: _scanning ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyanAccent)) : const Icon(Icons.search, color: Colors.white, size: 20), onPressed: _scanning ? null : _runScan)]))),
       if (!isMobile) Positioned(top: 20, left: 20, child: Container(decoration: BoxDecoration(color: const Color(0xFF0B1221).withOpacity(0.9), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24)), child: Column(children: [IconButton(icon: const Icon(Icons.add, color: Colors.white), onPressed: () { setState(() => _currentZoom++); _mapCtrl.move(_loc, _currentZoom); }), Container(height: 1, width: 30, color: Colors.white24), IconButton(icon: const Icon(Icons.remove, color: Colors.white), onPressed: () { setState(() => _currentZoom--); _mapCtrl.move(_loc, _currentZoom); })]))),
@@ -662,6 +677,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         Icon(Icons.landscape, color: Colors.brown, size: 14), const SizedBox(width: 5), Text("Soil: ${_envData['soil']}", style: TextStyle(color: Colors.white, fontSize: 11)), const SizedBox(width: 10),
         Icon(Icons.water_drop, color: Colors.blueAccent, size: 14), const SizedBox(width: 5), Text("${_envData['moisture']}%", style: TextStyle(color: Colors.white, fontSize: 11))
       ]))),
+      if (_droneActive) Positioned.fill(child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.cyanAccent.withOpacity(0.3), width: 40)), child: const Center(child: Icon(Icons.center_focus_strong, color: Colors.cyanAccent, size: 100)))),
     ]));
   }
 
@@ -681,6 +697,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           const SizedBox(height: 20),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [ const Text("Actions & Tasks", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)), Icon(Icons.more_horiz, color: Colors.white54) ]), const SizedBox(height: 10),
           _actionBtn("Generate Eviction Notice", Icons.auto_awesome, _showNotice),
+          _actionBtn(_droneActive ? "Terminate Drone Feed" : "Dispatch Surveillance Drone", Icons.satellite_alt, _toggleDrone),
+          _actionBtn("Capture Field Evidence", Icons.camera_alt, _captureEvidence),
           if (!_evictSent && !_canDemolish) _actionBtn("Set Warning Timer", Icons.warning_amber_rounded, _startTimer),
           if (_evictSent) Container(width: double.infinity, padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orangeAccent)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("NOTICE ACTIVE", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 12)), const SizedBox(height: 5), Text("Deadline: $_timerSecs Seconds Remaining", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))])),
           if (_canDemolish) SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () { 
@@ -697,7 +715,28 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             }); 
           }, icon: const Icon(Icons.construction), label: const Text("Add to Demolition Queue"), style: ElevatedButton.styleFrom(alignment: Alignment.centerLeft, padding: const EdgeInsets.all(15), backgroundColor: Colors.red[800], foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)))))
         ] else ...[
-          const Text("NOTE: Administrative tools disabled for guests.", style: TextStyle(color: Colors.orangeAccent, fontSize: 11, fontStyle: FontStyle.italic))
+          const Text("NOTE: Administrative tools disabled for guests.", style: TextStyle(color: Colors.orangeAccent, fontSize: 11, fontStyle: FontStyle.italic)),
+          const SizedBox(height: 20),
+          _actionBtn("Submit Citizen Report", Icons.report_problem, _showBhuPrahari),
+        ],
+        if (_fieldEvidences.isNotEmpty) ...[
+          const SizedBox(height: 25),
+          const Text("Recent Field Records", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          ..._fieldEvidences.map((e) => Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
+            child: Row(children: [
+              const Icon(Icons.image, color: Colors.cyanAccent, size: 16),
+              const SizedBox(width: 10),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(e['name'], style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                Text("Geotag: ${e['lat'].toStringAsFixed(4)}, ${e['lon'].toStringAsFixed(4)}", style: const TextStyle(color: Colors.white54, fontSize: 10)),
+              ])),
+              const Icon(Icons.check_circle, color: Colors.green, size: 14)
+            ]),
+          ))
         ]
       ]
     ],
@@ -708,6 +747,63 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   Widget _col(String l, String v, Color c) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(l, style: const TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)), const SizedBox(height: 4), Text(v, style: TextStyle(color: c, fontSize: 14, fontWeight: FontWeight.bold))]);
   Widget _btn(String t, IconData i, VoidCallback tap) => ElevatedButton.icon(onPressed: tap, icon: Icon(i, size: 16), label: Text(t, style: const TextStyle(fontSize: 12)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E293B), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))));
   Widget _actionBtn(String t, IconData i, VoidCallback tap) => Padding(padding: const EdgeInsets.only(bottom: 10), child: SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: tap, icon: Icon(i, size: 18), label: Text(t), style: ElevatedButton.styleFrom(alignment: Alignment.centerLeft, padding: const EdgeInsets.all(15), backgroundColor: const Color(0xFF1E293B), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))))));
+
+  void _toggleDrone() {
+    setState(() {
+      _droneActive = !_droneActive;
+      if (_droneActive) {
+        _dronePos = _loc;
+        _status = "🚁 DRONE SURVEILLANCE ACTIVE";
+        _droneTimer = Timer.periodic(const Duration(milliseconds: 500), (t) {
+          setState(() {
+            _dronePos = LatLng(_dronePos!.latitude + 0.00005, _dronePos!.longitude + 0.00005);
+          });
+        });
+      } else {
+        _droneTimer?.cancel();
+        _status = "✅ DRONE RETURNED TO BASE";
+      }
+    });
+  }
+
+  Future<void> _captureEvidence() async {
+    try {
+      _status = "📍 ACQUIRING GPS LOCK...";
+      setState(() {});
+      
+      // Get current position
+      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      
+      _status = "📸 OPENING SECURE CAMERA...";
+      setState(() {});
+
+      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
+
+      if (result != null) {
+        setState(() {
+          _fieldEvidences.insert(0, {
+            "name": "IMG_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.JPG",
+            "lat": pos.latitude,
+            "lon": pos.longitude,
+            "time": DateFormat('HH:mm:ss').format(DateTime.now()),
+          });
+          _tasksList.insert(0, {
+            "title": "Field Evidence Recorded",
+            "desc": "Geotagged proof captured at ${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}",
+            "status": "Success",
+            "time": DateFormat('HH:mm a').format(DateTime.now())
+          });
+          _status = "✅ EVIDENCE SAVED TO BLOCKCHAIN";
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Geotagged Evidence Saved."), backgroundColor: Colors.green));
+      } else {
+        setState(() => _status = "⚠️ CAPTURE CANCELLED");
+      }
+    } catch (e) {
+      setState(() => _status = "❌ GEOTAG ERROR: $e");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+    }
+  }
 
   void _startTimer() { 
     showDialog(context: context, builder: (c) { 
@@ -901,10 +997,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     children: [
                       const Icon(Icons.satellite_alt, color: Colors.orangeAccent, size: 30),
                       const SizedBox(width: 15),
-                      Text(_t("Bhu-Prahari - Citizen Portal", "भू-प्रहरी - नागरिक पोर्टल"), style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 20),
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: Colors.orangeAccent.withOpacity(0.2), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.orangeAccent)), child: Row(children: [const Icon(Icons.star, color: Colors.orangeAccent, size: 14), const SizedBox(width: 5), Text(_t("Karma: $_karmaPoints", "कर्म: $_karmaPoints"), style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 12))])),
-                      const Spacer(),
+                      Expanded(child: Text(_t("Bhu-Prahari - Citizen Portal", "भू-प्रहरी - नागरिक पोर्टल"), style: const TextStyle(color: Colors.white, fontSize: isMobile ? 16 : 22, fontWeight: FontWeight.bold))),
+                      const SizedBox(width: 10),
                       TextButton(
                         onPressed: () { 
                           setState(() => _isHindi = !_isHindi); 
@@ -1151,14 +1245,15 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   Widget _bhuCard(String title, Widget child) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(color: const Color(0xFF1E293B).withOpacity(0.5), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 15),
-          Expanded(child: child)
+          Text(title, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          child.runtimeType == Column ? child : Expanded(child: child)
         ],
       )
     );
