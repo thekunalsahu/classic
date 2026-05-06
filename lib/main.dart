@@ -686,6 +686,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     return Container(decoration: BoxDecoration(color: const Color(0xFF0B1221), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)), padding: const EdgeInsets.all(16), child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
       Text(_status, style: TextStyle(color: _status.contains("ERROR") ? Colors.redAccent : (_ready ? Colors.greenAccent : Colors.cyanAccent), fontSize: 12, fontWeight: FontWeight.bold)),
       const SizedBox(height: 20),
+      if (widget.isOfficer) ...[
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [ const Text("Quick Officer Tools", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)), Icon(Icons.flash_on, color: Colors.cyanAccent, size: 16) ]), 
+        const SizedBox(height: 10),
+        _actionBtn(_droneActive ? "Terminate Drone Feed" : "Dispatch Surveillance Drone", Icons.satellite_alt, _toggleDrone),
+        _actionBtn("Capture Field Evidence", Icons.camera_alt, _captureEvidence),
+        const SizedBox(height: 20),
+      ],
       if (!_ready) const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 40), child: Text("Waiting for target coordinates to initiate analysis workflow...", textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 12))))
       else ...[
         const Text("Real-time Stats", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 15),
@@ -696,10 +703,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         if (widget.isOfficer) ...[
           Row(children: [Expanded(child: _btn("Compare", Icons.compare, _showComp)), const SizedBox(width: 10), Expanded(child: _btn("Report", Icons.picture_as_pdf, _makePDF))]),
           const SizedBox(height: 20),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [ const Text("Actions & Tasks", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)), Icon(Icons.more_horiz, color: Colors.white54) ]), const SizedBox(height: 10),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [ const Text("Scan Actions", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)), Icon(Icons.more_horiz, color: Colors.white54) ]), const SizedBox(height: 10),
           _actionBtn("Generate Eviction Notice", Icons.auto_awesome, _showNotice),
-          _actionBtn(_droneActive ? "Terminate Drone Feed" : "Dispatch Surveillance Drone", Icons.satellite_alt, _toggleDrone),
-          _actionBtn("Capture Field Evidence", Icons.camera_alt, _captureEvidence),
           if (!_evictSent && !_canDemolish) _actionBtn("Set Warning Timer", Icons.warning_amber_rounded, _startTimer),
           if (_evictSent) Container(width: double.infinity, padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orangeAccent)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("NOTICE ACTIVE", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 12)), const SizedBox(height: 5), Text("Deadline: $_timerSecs Seconds Remaining", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))])),
           if (_canDemolish) SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () { 
