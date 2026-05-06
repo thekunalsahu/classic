@@ -650,13 +650,10 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 if (_droneActive && _dronePos != null) MarkerLayer(markers: [
                   Marker(point: _dronePos!, width: 80, height: 80, child: const Icon(Icons.gps_fixed, color: Colors.redAccent, size: 40))
                 ]),
-              ],
-            ),
-      ),
-      Positioned(top: 15, right: 15, left: isMobile ? 15 : null, child: Container(width: isMobile ? null : 350, decoration: BoxDecoration(color: const Color(0xFF0B1221).withOpacity(0.9), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24)), child: Row(children: [Expanded(child: TextField(controller: _searchCtrl, style: const TextStyle(color: Colors.white, fontSize: 13), decoration: const InputDecoration(hintText: "Search City/Sector...", hintStyle: TextStyle(color: Colors.white54, fontSize: 12), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)), onSubmitted: (_) => _scanning ? null : _runScan())), IconButton(icon: _scanning ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyanAccent)) : const Icon(Icons.search, color: Colors.white, size: 20), onPressed: _scanning ? null : _runScan)]))),
-      if (!isMobile) Positioned(top: 20, left: 20, child: Container(decoration: BoxDecoration(color: const Color(0xFF0B1221).withOpacity(0.9), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24)), child: Column(children: [IconButton(icon: const Icon(Icons.add, color: Colors.white), onPressed: () { setState(() => _currentZoom++); _mapCtrl.move(_loc, _currentZoom); }), Container(height: 1, width: 30, color: Colors.white24), IconButton(icon: const Icon(Icons.remove, color: Colors.white), onPressed: () { setState(() => _currentZoom--); _mapCtrl.move(_loc, _currentZoom); })]))),
+                 Positioned(top: 15, right: 15, left: isMobile ? 15 : null, child: Container(width: isMobile ? null : 350, decoration: BoxDecoration(color: const Color(0xFF0B1221).withOpacity(0.9), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24)), child: Row(children: [Expanded(child: TextField(controller: _searchCtrl, style: const TextStyle(color: Colors.white, fontSize: 13), decoration: const InputDecoration(hintText: "Search City/Sector...", hintStyle: TextStyle(color: Colors.white54, fontSize: 12), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)), onSubmitted: (_) => _scanning ? null : _runScan())), IconButton(icon: _scanning ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyanAccent)) : const Icon(Icons.search, color: Colors.white, size: 20), onPressed: _scanning ? null : _runScan)]))),
+      if (_hasSearched && !isMobile) Positioned(top: 20, left: 20, child: Container(decoration: BoxDecoration(color: const Color(0xFF0B1221).withOpacity(0.9), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24)), child: Column(children: [IconButton(icon: const Icon(Icons.add, color: Colors.white), onPressed: () { setState(() => _currentZoom++); _mapCtrl.move(_loc, _currentZoom); }), Container(height: 1, width: 30, color: Colors.white24), IconButton(icon: const Icon(Icons.remove, color: Colors.white), onPressed: () { setState(() => _currentZoom--); _mapCtrl.move(_loc, _currentZoom); })]))),
       // Satellite / Street Toggle Button
-      Positioned(top: isMobile ? 70 : 130, left: isMobile ? 15 : 20, child: GestureDetector(
+      if (_hasSearched) Positioned(top: isMobile ? 70 : 130, left: isMobile ? 15 : 20, child: GestureDetector(
         onTap: () => setState(() => _isSatellite = !_isSatellite),
         child: Container(
           padding: const EdgeInsets.all(10),
@@ -673,7 +670,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         ),
       )),
       // Bhuvan WMS Toggle
-      Positioned(top: isMobile ? 115 : 185, left: isMobile ? 15 : 20, child: GestureDetector(
+      if (_hasSearched) Positioned(top: isMobile ? 115 : 185, left: isMobile ? 15 : 20, child: GestureDetector(
         onTap: () => setState(() => _showBhuvanWms = !_showBhuvanWms),
         child: Container(
           padding: const EdgeInsets.all(10),
@@ -689,7 +686,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           ]),
         ),
       )),
-      Positioned(bottom: 20, right: 20, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: const Color(0xFF0B1221).withOpacity(0.8), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24)), child: Row(children: [
+      if (_hasSearched) Positioned(bottom: 20, right: 20, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: const Color(0xFF0B1221).withOpacity(0.8), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24)), child: Row(children: [
         Icon(Icons.thermostat, color: Colors.orangeAccent, size: 14), const SizedBox(width: 5), Text("${_envData['temp']}°C", style: TextStyle(color: Colors.white, fontSize: 11)), const SizedBox(width: 10), 
         Icon(Icons.air, color: Colors.lightBlueAccent, size: 14), const SizedBox(width: 5), Text("AQI: ${_envData['aqi']}", style: TextStyle(color: Colors.white, fontSize: 11)), const SizedBox(width: 10), 
         Icon(Icons.landscape, color: Colors.brown, size: 14), const SizedBox(width: 5), Text("Soil: ${_envData['soil']}", style: TextStyle(color: Colors.white, fontSize: 11)), const SizedBox(width: 10),
