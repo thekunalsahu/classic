@@ -631,26 +631,6 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 color: Color(0xFF070B19),
                 image: DecorationImage(image: AssetImage("assets/images/poster.png"), fit: BoxFit.cover),
               ),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-                  )
-                ),
-                child: const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.travel_explore, color: Colors.cyanAccent, size: 60),
-                      SizedBox(height: 20),
-                      Text("READY FOR ORBITAL SCAN", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 2)),
-                      Text("ENTER LOCATION TO BEGIN", style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 1)),
-                    ],
-                  ),
-                ),
-              ),
             )
           : FlutterMap(
               key: const ValueKey("map"),
