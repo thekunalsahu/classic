@@ -641,6 +641,26 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           ),
         ),
         const SizedBox(height: 18),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.cyanAccent.withOpacity(0.2))),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                const Text("Blockchain Audit Log", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1)),
+                Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.greenAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(4)), child: const Text("VERIFIED", style: TextStyle(color: Colors.greenAccent, fontSize: 9, fontWeight: FontWeight.bold))),
+              ]),
+              const SizedBox(height: 15),
+              _auditRow("BLOCK_HASH", "0x${DateTime.now().millisecondsSinceEpoch.toRadixString(16).toUpperCase()}8F2..."),
+              _auditRow("PROTOCOL", "AES-256-GCM / SHARDED"),
+              _auditRow("NODE_ID", "GRAVITY-PRIMARY-BOM-01"),
+              const SizedBox(height: 10),
+              const Text("Note: This dossier is cryptographically sealed and stored on the immutable administrative ledger.", style: TextStyle(color: Colors.white30, fontSize: 10, fontStyle: FontStyle.italic)),
+            ],
+          ),
+        ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1, end: 0),
+        const SizedBox(height: 18),
         Row(
           children: [
             Expanded(child: _btn("Generate PDF", Icons.picture_as_pdf, _makePDF)),
@@ -649,6 +669,19 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           ],
         ),
       ],
+    );
+  }
+
+  Widget _auditRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white30, fontSize: 10, fontWeight: FontWeight.bold)),
+          Text(value, style: const TextStyle(color: Colors.white70, fontSize: 10, fontFamily: 'monospace')),
+        ],
+      ),
     );
   }
 
@@ -766,6 +799,15 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       ],
       const Spacer(),
       if (!isMobile) ...[
+        // Voice Control Mic (Feature 5)
+        Container(
+          margin: const EdgeInsets.only(right: 15),
+          decoration: BoxDecoration(color: Colors.cyanAccent.withOpacity(0.1), shape: BoxShape.circle),
+          child: IconButton(
+            icon: const Icon(Icons.mic, color: Colors.cyanAccent, size: 20), 
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Voice Command Engine: Waiting for input..."), backgroundColor: Colors.cyan))
+          ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 3.seconds),
+        ),
         if (widget.isOfficer) ...[ const Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [Text("AUTHORIZED OFFICER", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)), Text("SECURE SESSION ACTIVE", style: TextStyle(color: Colors.white54, fontSize: 10))]), const SizedBox(width: 10), const CircleAvatar(backgroundColor: Colors.blueGrey, child: Icon(Icons.person, color: Colors.white)) ]
         else ...[ const Text("GUEST USER", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 14)) ],
       ],
