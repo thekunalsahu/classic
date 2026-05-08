@@ -839,17 +839,24 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 color: Color(0xFF070B19),
                 image: DecorationImage(image: AssetImage("assets/images/poster.png"), fit: BoxFit.cover, opacity: 0.6),
               ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.satellite_alt, color: Colors.cyanAccent, size: 80).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds, color: Colors.white30).shake(),
-                    const SizedBox(height: 20),
-                    const Text("SYSTEM STANDBY", style: TextStyle(color: Colors.cyanAccent, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 4)).animate(onPlay: (c) => c.repeat()).fadeIn(duration: 1.seconds).fadeOut(delay: 1.seconds),
-                    const SizedBox(height: 10),
-                    const Text("WAITING FOR ORBITAL COORDINATES...", style: TextStyle(color: Colors.white30, fontSize: 12, letterSpacing: 1)),
-                  ],
-                ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    bottom: 30,
+                    left: 30,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.satellite_alt, color: Colors.cyanAccent, size: 40).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds, color: Colors.white30).shake(),
+                        const SizedBox(height: 10),
+                        const Text("SYSTEM STANDBY", style: TextStyle(color: Colors.cyanAccent, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 2)).animate(onPlay: (c) => c.repeat()).fadeIn(duration: 1.seconds).fadeOut(delay: 1.seconds),
+                        const SizedBox(height: 5),
+                        const Text("WAITING FOR ORBITAL COORDINATES...", style: TextStyle(color: Colors.white30, fontSize: 10, letterSpacing: 1)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             )
           : FlutterMap(
@@ -1807,11 +1814,27 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   padding: const EdgeInsets.all(15),
                   child: Row(
                     children: [
+                      // File Upload Button (Feature: Media/Files)
+                      IconButton(
+                        icon: const Icon(Icons.attach_file, color: Colors.white54, size: 20),
+                        onPressed: () async {
+                          await _pickFile();
+                          setModalState(() {
+                            _chatMsgs.add({"role": "user", "text": "[Attached Document for Analysis]"});
+                            _chatMsgs.add({"role": "ai", "text": "Document received. Analyzing geospatial context and land-records..."});
+                          });
+                        }
+                      ),
+                      const SizedBox(width: 5),
                       Expanded(
                         child: TextField(
                           controller: _chatCtrl,
                           style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(hintText: "Ask Gravity AI...", hintStyle: TextStyle(color: Colors.white54)),
+                          decoration: const InputDecoration(
+                            hintText: "Ask Gravity AI...", 
+                            hintStyle: TextStyle(color: Colors.white30),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                          ),
                           onSubmitted: (val) {
                             if (val.trim().isEmpty) return;
                             setModalState(() {
@@ -1822,7 +1845,16 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                           },
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 5),
+                      // Voice Mic Button inside Chatbot
+                      Container(
+                        decoration: BoxDecoration(color: Colors.cyanAccent.withOpacity(0.1), shape: BoxShape.circle),
+                        child: IconButton(
+                          icon: const Icon(Icons.mic, color: Colors.cyanAccent, size: 18),
+                          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Listening for voice input..."), backgroundColor: Colors.cyan))
+                        ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 3.seconds),
+                      ),
+                      const SizedBox(width: 5),
                       IconButton(
                         icon: const Icon(Icons.send, color: Colors.cyanAccent),
                         onPressed: () {
