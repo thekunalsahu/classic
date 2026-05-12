@@ -53,179 +53,340 @@ class _LandingPageState extends State<LandingPage> {
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => DashboardScreen(isOfficer: isOfficer)));
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          bool isMobile = constraints.maxWidth < 900;
-          
-          if (isMobile) {
-            return Container(
-              width: double.infinity,
-              height: double.infinity,
-              decoration: const BoxDecoration(image: DecorationImage(image: AssetImage(kEarthImg), fit: BoxFit.cover)),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 40),
-                    Row(
-                      children: [
-                        Image.asset("assets/images/logo.png", height: 50),
-                        const SizedBox(width: 8),
-                        const Expanded(child: Text("Gravity AI", style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -1.0))),
-                      ],
-                    ),
-                    const SizedBox(height: 30),
-                    _buildLoginCard("OFFICER PORTAL", Icons.admin_panel_settings, Colors.blueAccent, true),
-                    const SizedBox(height: 20),
-                    _buildLoginCard("PUBLIC ACCESS", Icons.public, Colors.greenAccent, false),
-                    const SizedBox(height: 30),
-                    _buildDetailsCard(),
-                    const SizedBox(height: 40),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          return Stack(
-            children: [
-              Container(
-                width: double.infinity, 
-                height: double.infinity, 
-                decoration: const BoxDecoration(
-                  color: Color(0xFF020617),
-                  image: DecorationImage(
-                    image: AssetImage(kEarthImg), 
-                    fit: BoxFit.cover,
-                  )
-                )
-              ),
-              Positioned(
-                top: 40, left: 40,
-                child: Row(
-                  children: [
-                    Image.asset("assets/images/logo.png", height: isMobile ? 50 : 70),
-                    const SizedBox(width: 12),
-                    Text("Gravity AI", style: TextStyle(fontSize: isMobile ? 35 : 50, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -1.0)),
-                  ],
-                ),
-              ),
-              Positioned(
-                top: MediaQuery.of(context).size.height * 0.22, left: MediaQuery.of(context).size.width * 0.08, 
-                child: SizedBox(
-                  width: isMobile ? MediaQuery.of(context).size.width * 0.84 : 580,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start, 
-                    children: [
-                      _buildLoginCard("OFFICER PORTAL", Icons.admin_panel_settings, Colors.blueAccent, true),
-                      SizedBox(height: isMobile ? 20 : 30),
-                      _buildLoginCard("PUBLIC ACCESS", Icons.public, Colors.greenAccent, false),
-                    ],
-                  ).animate().fadeIn(duration: 600.ms, curve: Curves.easeOutCubic).slideX(begin: -0.1, end: 0),
-                ),
-              ),
-              Positioned(
-                top: MediaQuery.of(context).size.height * 0.22, right: MediaQuery.of(context).size.width * 0.08, 
-                child: SizedBox(
-                  width: isMobile ? 0 : 540,
-                  child: isMobile ? const SizedBox() : _buildDetailsCard().animate().fadeIn(duration: 600.ms, curve: Curves.easeOutCubic).slideX(begin: 0.1, end: 0),
-                ),
-              ),
-            ],
-          );
-        }
-      ),
-    );
-  }
-
-  Widget _buildDetailsCard() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          padding: const EdgeInsets.all(25),
-          decoration: BoxDecoration(color: Colors.black.withOpacity(0.35), border: Border.all(color: Colors.white.withOpacity(0.15))),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: Colors.orangeAccent.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: Row(mainAxisSize: MainAxisSize.min, children: [const Text("USES ISRO BHUVAN SERVICES", style: TextStyle(color: Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)), const SizedBox(width: 8), const BlinkingLight(color: Colors.greenAccent)])),
-              const SizedBox(height: 15), const Text("Developed by Team Tensor Titans, Gravity is a Next-Generation Geospatial Intelligence platform for urban administration.", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, height: 1.4)),
-              const SizedBox(height: 15),
-              Text("- Core Engine: Siam-UNet assisted segmentation for land-use analysis.\n\n- Bhuvan Integration: Satellite imagery, terrain context, and WMS/WFS layers for boundary validation.\n\n- Capabilities: GeoJSON and Bhu-Naksha cross-checking for encroachment risk review.\n\n- Actionable Intelligence: Compliance notice drafting, evidence capture, and field inspection workflow.", style: TextStyle(color: Colors.white.withOpacity(0.8), height: 1.5, fontSize: 13)),
-            ],
+  void _showLoginDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => Center(
+        child: SingleChildScrollView(
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 450),
+              child: _buildLoginCard("OFFICER PORTAL", Icons.admin_panel_settings, Colors.blueAccent, true),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildLoginCard(String title, IconData icon, Color accent, bool isOfficer) {
-    return Container(
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 30, offset: const Offset(0, 15))]),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 25.0, sigmaY: 25.0),
+  @override
+  Widget build(BuildContext context) {
+    bool isMobile = MediaQuery.of(context).size.width < 900;
+    
+    return Scaffold(
+      backgroundColor: const Color(0xFF020617),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // --- HEADER ---
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 20 : 80, vertical: 30),
+              child: Row(
+                children: [
+                  Image.asset("assets/images/logo.png", height: 40),
+                  const SizedBox(width: 12),
+                  const Text("GravityAI", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -0.5)),
+                  const Spacer(),
+                  if (!isMobile) ...[
+                    _navText("Technology"),
+                    _navText("Features"),
+                    _navText("Solutions"),
+                    const SizedBox(width: 20),
+                  ],
+                  ElevatedButton(
+                    onPressed: _showLoginDialog,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF22C55E),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text("User Login", style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+
+            // --- HERO SECTION ---
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 20 : 80, vertical: 40),
+              child: isMobile ? Column(
+                children: [
+                  _buildHeroText(isMobile),
+                  const SizedBox(height: 40),
+                  _buildHeroGraphic(isMobile),
+                ],
+              ) : Row(
+                children: [
+                  Expanded(flex: 5, child: _buildHeroText(isMobile)),
+                  Expanded(flex: 6, child: _buildHeroGraphic(isMobile)),
+                ],
+              ),
+            ),
+
+            // --- PROCESS SECTION (HOW IT WORKS) ---
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.02),
+                border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05)), bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
+              ),
+              child: Column(
+                children: [
+                  _badge("HOW IT WORKS"),
+                  const SizedBox(height: 20),
+                  const Text("Smart. Simple. Powerful.", style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 60),
+                  Wrap(
+                    spacing: 30,
+                    runSpacing: 30,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      _processStep("1", Icons.satellite_alt, "Satellite Monitoring", "We collect high-resolution satellite images of your selected land from ISRO BHUVAN."),
+                      _processStep("2", Icons.memory, "AI Analysis with Machine Learning", "Our AI models analyze images using machine learning to detect any unauthorized activity."),
+                      _processStep("3", Icons.warning_amber, "Encroachment Detected", "Suspicious changes are flagged with precise location & area."),
+                      _processStep("4", Icons.description, "Instant Reports", "Get instant alerts & detailed reports to take action fast."),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // --- USE CASES ---
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 20),
+              child: Column(
+                children: [
+                  _badge("USE FOR"),
+                  const SizedBox(height: 50),
+                  Wrap(
+                    spacing: 20,
+                    runSpacing: 20,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      _useCase(Icons.account_balance, "Government Authorities", "Monitor public land and take timely action."),
+                      _useCase(Icons.business, "Real Estate Developers", "Protect land assets and prevent legal disputes."),
+                      _useCase(Icons.location_city, "Municipal Corporations", "Track encroachments and manage city land better."),
+                      _useCase(Icons.factory, "Industries & Enterprises", "Secure your land and infrastructure."),
+                      _useCase(Icons.eco, "NGOs & Environmental Groups", "Protect forests, water bodies & community land."),
+                      _useCase(Icons.person, "Individuals & Land Owners", "Safeguard your property with real-time alerts."),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // --- FOOTER ---
+            _footer(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _navText(String text) => Padding(padding: const EdgeInsets.symmetric(horizontal: 15), child: Text(text, style: const TextStyle(color: Colors.white70, fontSize: 14)));
+
+  Widget _buildHeroText(bool isMobile) {
+    return Column(
+      crossAxisAlignment: isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(color: const Color(0xFF22C55E).withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFF22C55E).withOpacity(0.3))),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF22C55E), shape: BoxShape.circle)),
+              const SizedBox(width: 8),
+              const Text("AI Use for Detection", style: TextStyle(color: Color(0xFF22C55E), fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 25),
+        Text("Detect Illegal\nLand Encroachment\nwith Precision.", 
+          textAlign: isMobile ? TextAlign.center : TextAlign.start,
+          style: TextStyle(fontSize: isMobile ? 40 : 64, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1, letterSpacing: -1.5)),
+        const SizedBox(height: 25),
+        Text("GravityAI uses Advanced AI & ISRO BHUVAN satellite imagery to detect unauthorized encroachments in real-time and help you protect what's rightfully yours.",
+          textAlign: isMobile ? TextAlign.center : TextAlign.start,
+          style: TextStyle(color: Colors.white70, fontSize: 18, height: 1.5, maxWidth: isMobile ? null : 500)),
+        const SizedBox(height: 40),
+        Row(
+          mainAxisAlignment: isMobile ? MainAxisAlignment.center : MainAxisAlignment.start,
+          children: [
+            ElevatedButton(
+              onPressed: _showLoginDialog,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF22C55E),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Row(
+                children: [
+                  Text("User Login", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  SizedBox(width: 8),
+                  Icon(Icons.arrow_forward, size: 18),
+                ],
+              ),
+            ),
+            const SizedBox(width: 20),
+            OutlinedButton(
+              onPressed: () {},
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Row(
+                children: [
+                  Text("Explore Features", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  SizedBox(width: 8),
+                  Icon(Icons.arrow_forward, size: 18, color: Colors.white30),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 50),
+        Row(
+          mainAxisAlignment: isMobile ? MainAxisAlignment.center : MainAxisAlignment.start,
+          children: [
+            _heroStat(Icons.gps_fixed, "High Accuracy\nAI Detection"),
+            _heroStat(Icons.sensors, "Real-time\nMonitoring"),
+            _heroStat(Icons.verified_user, "Secure &\nReliable"),
+          ],
+        ),
+      ],
+    ).animate().fadeIn(duration: 800.ms).slideX(begin: -0.1, end: 0);
+  }
+
+  Widget _buildHeroGraphic(bool isMobile) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // Using the earth image as a fallback or background for the graphic
+        Container(
+          height: isMobile ? 300 : 500,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            image: const DecorationImage(image: AssetImage(kEarthImg), fit: BoxFit.cover, opacity: 0.3),
+          ),
+        ),
+        // If the user has a specific hero image, we would use it here. 
+        // For now, I'll use a placeholder icon and animations to simulate the "Scanning" effect.
+        Icon(Icons.satellite_alt, size: isMobile ? 100 : 200, color: Colors.cyanAccent.withOpacity(0.5))
+          .animate(onPlay: (controller) => controller.repeat())
+          .shimmer(duration: 2.seconds)
+          .moveY(begin: -10, end: 10, duration: 2.seconds, curve: Curves.easeInOut),
+        
+        Positioned(
+          top: 40, right: 40,
           child: Container(
-            padding: EdgeInsets.all(MediaQuery.of(context).size.width < 500 ? 24 : 35),
-            decoration: BoxDecoration(color: Colors.black.withOpacity(0.25), border: Border.all(color: Colors.white.withOpacity(0.2))),
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.redAccent.withOpacity(0.5))),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [Icon(Icons.report_problem, color: Colors.redAccent, size: 16), SizedBox(width: 8), Text("Encroachment Detected", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))]),
+                SizedBox(height: 8),
+                Text("Area: 1250 sq.m\nConfidence: 98.7%", style: TextStyle(color: Colors.white70, fontSize: 10)),
+              ],
+            ),
+          ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.2, end: 0),
+        ),
+      ],
+    ).animate().fadeIn(duration: 1000.ms).scale(begin: const Offset(0.9, 0.9));
+  }
+
+  Widget _badge(String text) => Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), decoration: BoxDecoration(color: const Color(0xFF22C55E).withOpacity(0.1), borderRadius: BorderRadius.circular(4)), child: Text(text, style: const TextStyle(color: Color(0xFF22C55E), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)));
+
+  Widget _heroStat(IconData icon, String text) => Padding(padding: const EdgeInsets.only(right: 30), child: Row(children: [Icon(icon, color: const Color(0xFF22C55E), size: 20), const SizedBox(width: 10), Text(text, style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.2))]));
+
+  Widget _processStep(String num, IconData icon, String title, String desc) {
+    return Container(
+      width: 280,
+      padding: const EdgeInsets.all(30),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white.withOpacity(0.05))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(width: 32, height: 32, decoration: const BoxDecoration(color: Color(0xFF22C55E), shape: BoxShape.circle), child: Center(child: Text(num, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+              const Spacer(),
+              Icon(icon, color: Colors.white30),
+            ],
+          ),
+          const SizedBox(height: 25),
+          Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          Text(desc, style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 14, height: 1.5)),
+        ],
+      ),
+    ).animate().fadeIn(delay: (int.parse(num) * 100).ms).slideY(begin: 0.1, end: 0);
+  }
+
+  Widget _useCase(IconData icon, String title, String desc) {
+    return Container(
+      width: 350,
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF22C55E), size: 24),
+          const SizedBox(width: 20),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(children: [Icon(icon, color: accent), const SizedBox(width: 10), Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 1.2))]),
-                const SizedBox(height: 25),
-                if (isOfficer) ...[
-                  TextField(controller: _id, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: "Officer ID")),
-                  const SizedBox(height: 15),
-                  TextField(controller: _pass, obscureText: true, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: "Password")),
-                  const SizedBox(height: 25),
-                ] else ...[
-                  Text("Search land risk assessments without privileges.", style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.5)),
-                  const SizedBox(height: 25),
-                ],
-                if (isOfficer) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () => _login(true),
-                      style: ElevatedButton.styleFrom(backgroundColor: accent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: const Text("SECURE LOGIN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1))
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: TextButton.icon(
-                      onPressed: () {
-                        _id.text = "DEMO-OFFICER";
-                        _pass.text = "demo123";
-                        _login(true);
-                      },
-                      icon: const Icon(Icons.bolt, size: 16),
-                      label: const Text("USE DEMO OFFICER"),
-                      style: TextButton.styleFrom(foregroundColor: Colors.white70),
-                    ),
-                  ),
-                ] else
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: OutlinedButton(
-                      onPressed: () => _login(false),
-                      style: OutlinedButton.styleFrom(backgroundColor: accent.withOpacity(0.05), side: BorderSide(color: accent, width: 1.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: Text("ENTER AS GUEST", style: TextStyle(color: accent, fontWeight: FontWeight.w900, letterSpacing: 1.2))
-                    ),
-                  )
+                Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Text(desc, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13, height: 1.4)),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginCard(String title, IconData icon, Color accent, bool isOfficer) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 25.0, sigmaY: 25.0),
+        child: Container(
+          padding: const EdgeInsets.all(35),
+          decoration: BoxDecoration(color: Colors.black.withOpacity(0.7), border: Border.all(color: Colors.white.withOpacity(0.2)), borderRadius: BorderRadius.circular(24)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [Icon(icon, color: accent), const SizedBox(width: 10), Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 1.2))]),
+              const SizedBox(height: 25),
+              TextField(controller: _id, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: "Officer ID")),
+              const SizedBox(height: 15),
+              TextField(controller: _pass, obscureText: true, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: "Password")),
+              const SizedBox(height: 25),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () => _login(true),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: const Text("SECURE LOGIN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1))
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(onPressed: () => _login(false), child: const Text("ENTER AS GUEST", style: TextStyle(color: Colors.white54))),
+              ),
+            ],
           ),
         ),
       ),
