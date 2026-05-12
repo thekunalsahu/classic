@@ -25,42 +25,34 @@ const String kBackendUrl = "https://gravityai-backend.onrender.com";
 const String kEarthImg = "assets/images/background.png";
 const String kGroqKey = String.fromEnvironment('GROQ_API_KEY', defaultValue: ''); 
 
-void main() { runApp(const GravityApp()); }
+void main() { runApp(const GravityAIApp()); }
 
-class GravityApp extends StatelessWidget {
-  const GravityApp({super.key});
+class GravityAIApp extends StatelessWidget {
+  const GravityAIApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Gravity AI Portal',
-      theme: AppTheme.darkTheme,
-      home: const LandingPage(),
+      title: 'GravityAI',
+      theme: ThemeData(
+        textTheme: GoogleFonts.poppinsTextTheme(),
+        scaffoldBackgroundColor: const Color(0xff020817),
+        brightness: Brightness.dark,
+      ),
+      home: const GravityHomePage(),
     );
   }
 }
 
-class LandingPage extends StatefulWidget { const LandingPage({super.key}); @override State<LandingPage> createState() => _LandingPageState(); }
-class _LandingPageState extends State<LandingPage> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+class GravityHomePage extends StatefulWidget {
+  const GravityHomePage({super.key});
 
   @override
-  void initState() {
-    super.initState();
+  State<GravityHomePage> createState() => _GravityHomePageState();
+}
 
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-      lowerBound: 0.2,
-      upperBound: 1,
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+class _GravityHomePageState extends State<GravityHomePage> {
   final TextEditingController _id = TextEditingController();
   final TextEditingController _pass = TextEditingController();
 
@@ -92,83 +84,269 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: AspectRatio(
-          aspectRatio: 16 / 9,
-          child: Stack(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xff020617), Color(0xff04111f), Color(0xff071d2e)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
             children: [
-              Positioned.fill(
-                child: Image.asset(
-                  'assets/images/landing_page.png', // Or gravity_ai_ui.png if they renamed it, but we'll use landing_page.png to match existing
-                  fit: BoxFit.cover,
-                ),
-              ),
-
-              // USER LOGIN BUTTON
-              Positioned(
-                left: 68,
-                bottom: 245,
-                child: GestureDetector(
-                  onTap: () => _login(true), // Call original login logic
-                  child: Container(
-                    width: 245,
-                    height: 76,
-                    color: Colors.transparent,
-                  ),
-                ),
-              ),
-
-              // EXPLORE FEATURES BUTTON
-              Positioned(
-                left: 343,
-                bottom: 245,
-                child: GestureDetector(
-                  onTap: () => _login(false), // Or whatever public access action
-                  child: Container(
-                    width: 245,
-                    height: 76,
-                    color: Colors.transparent,
-                  ),
-                ),
-              ),
-
-              // BLINKING GREEN LIGHT
-              Positioned(
-                left: 82,
-                top: 145,
-                child: AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _controller.value,
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.greenAccent,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.greenAccent.withOpacity(0.9),
-                              blurRadius: 14,
-                              spreadRadius: 4,
+              const SizedBox(height: 40),
+              // ================= TOP SECTION =================
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 50),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // LEFT CONTENT
+                    Expanded(
+                      flex: 5,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // LOGO
+                          Row(
+                            children: [
+                              Container(
+                                width: 60, height: 60,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: const SweepGradient(colors: [Colors.greenAccent, Colors.blue, Colors.purple, Colors.red, Colors.orange, Colors.greenAccent]),
+                                  boxShadow: [BoxShadow(color: Colors.greenAccent.withOpacity(.5), blurRadius: 20)],
+                                ),
+                                child: const Center(child: CircleAvatar(radius: 22, backgroundColor: Color(0xff020817))),
+                              ),
+                              const SizedBox(width: 16),
+                              const Text("GravityAI", style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold))
+                            ],
+                          ),
+                          const SizedBox(height: 30),
+                          // AI TAG
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                            decoration: BoxDecoration(color: const Color(0xff071423), borderRadius: BorderRadius.circular(30), border: Border.all(color: Colors.white10)),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircleAvatar(radius: 5, backgroundColor: Colors.greenAccent),
+                                SizedBox(width: 10),
+                                Text("AI Use for Detection", style: TextStyle(color: Colors.white, fontSize: 16))
+                              ],
                             ),
+                          ),
+                          const SizedBox(height: 35),
+                          // HEADING
+                          RichText(
+                            text: const TextSpan(
+                              children: [
+                                TextSpan(text: "Detect Illegal\nLand Encroachment\nwith ", style: TextStyle(fontSize: 70, fontWeight: FontWeight.w700, color: Colors.white, height: 1.05)),
+                                TextSpan(text: "Precision.", style: TextStyle(fontSize: 70, fontWeight: FontWeight.w700, color: Color(0xff39ff14))),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 30),
+                          // DESCRIPTION
+                          const SizedBox(
+                            width: 650,
+                            child: Text(
+                              "GravityAI uses Advanced AI & ISRO BHUVAN\nsatellite imagery to detect unauthorized\nencroachments in real-time and help you protect\nwhat’s rightfully yours.",
+                              style: TextStyle(color: Colors.white70, fontSize: 24, height: 1.7),
+                            ),
+                          ),
+                          const SizedBox(height: 40),
+                          // BUTTONS
+                          Row(
+                            children: [
+                              InkWell(
+                                onTap: _showLoginDialog,
+                                borderRadius: BorderRadius.circular(18),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 42, vertical: 22),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(18),
+                                    gradient: const LinearGradient(colors: [Color(0xff63ff1d), Color(0xff34d000)]),
+                                    boxShadow: [BoxShadow(color: Colors.greenAccent.withOpacity(.4), blurRadius: 20)],
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Text("User Login", style: TextStyle(color: Colors.black, fontSize: 24, fontWeight: FontWeight.bold)),
+                                      SizedBox(width: 20),
+                                      Icon(Icons.arrow_forward, color: Colors.black)
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 25),
+                              InkWell(
+                                onTap: () => _login(false),
+                                borderRadius: BorderRadius.circular(18),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 22),
+                                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), color: const Color(0xff071423), border: Border.all(color: Colors.white10)),
+                                  child: const Row(
+                                    children: [
+                                      Text("Explore Features", style: TextStyle(color: Colors.white, fontSize: 22)),
+                                      SizedBox(width: 16),
+                                      Icon(Icons.arrow_forward, color: Colors.greenAccent)
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 35),
+                          // FEATURES BAR
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 22),
+                            decoration: BoxDecoration(color: const Color(0xff06111f), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white10)),
+                            child: const Row(
+                              children: [
+                                FeatureItem(icon: Icons.gps_fixed, title: "High Accuracy\nAI Detection"),
+                                SizedBox(width: 40),
+                                FeatureItem(icon: Icons.radar, title: "Real-time\nMonitoring"),
+                                SizedBox(width: 40),
+                                FeatureItem(icon: Icons.shield_outlined, title: "Secure &\nReliable"),
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 30),
+                    // RIGHT IMAGE SECTION
+                    Expanded(
+                      flex: 5,
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 800, height: 600,
+                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(40), gradient: LinearGradient(colors: [Colors.greenAccent.withOpacity(.15), Colors.red.withOpacity(.08)])),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Container(
+                                    width: 700, height: 420,
+                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(25), gradient: const LinearGradient(colors: [Color(0xff0d2f14), Color(0xff1a1a1a)]), border: Border.all(color: Colors.greenAccent, width: 2), boxShadow: [BoxShadow(color: Colors.greenAccent.withOpacity(.3), blurRadius: 40)]),
+                                  ),
+                                  // HOUSE
+                                  Positioned(child: Container(width: 180, height: 130, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(12)))),
+                                  // SATELLITE ICON
+                                  const Positioned(top: 20, child: Icon(Icons.satellite_alt, size: 120, color: Colors.white)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // ALERT CARD
+                          Positioned(
+                            right: 0, top: 40,
+                            child: Container(
+                              width: 320, padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(color: const Color(0xff081321), borderRadius: BorderRadius.circular(25), border: Border.all(color: Colors.white10)),
+                              child: const Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.warning_rounded, color: Colors.red, size: 34),
+                                      SizedBox(width: 14),
+                                      Text("Encroachment Detected", style: TextStyle(color: Colors.red, fontSize: 20))
+                                    ],
+                                  ),
+                                  SizedBox(height: 20),
+                                  Text("Area: 1250 sq.m", style: TextStyle(color: Colors.white70, fontSize: 18)),
+                                  SizedBox(height: 10),
+                                  Text("Confidence: 98.7%", style: TextStyle(color: Colors.white70, fontSize: 18)),
+                                  SizedBox(height: 28),
+                                  Row(
+                                    children: [
+                                      Text("View Details", style: TextStyle(color: Colors.greenAccent, fontSize: 20, fontWeight: FontWeight.bold)),
+                                      Spacer(),
+                                      Icon(Icons.arrow_forward, color: Colors.greenAccent)
+                                    ],
+                                  )
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              ),
+              const SizedBox(height: 50),
+              // ================= HOW IT WORKS =================
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 50),
+                child: Container(
+                  padding: const EdgeInsets.all(30),
+                  decoration: BoxDecoration(color: const Color(0xff06111f), borderRadius: BorderRadius.circular(35), border: Border.all(color: Colors.white10)),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        decoration: BoxDecoration(color: Colors.green.withOpacity(.1), borderRadius: BorderRadius.circular(20)),
+                        child: const Text("HOW IT WORKS", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(height: 18),
+                      RichText(
+                        text: const TextSpan(
+                          children: [
+                            TextSpan(text: "Smart. Simple. ", style: TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold)),
+                            TextSpan(text: "Powerful.", style: TextStyle(color: Colors.greenAccent, fontSize: 48, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
-                    );
-                  },
+                      const SizedBox(height: 40),
+                      Row(
+                        children: const [
+                          Expanded(child: WorkCard(number: "1", title: "Satellite Monitoring", desc: "We collect high-resolution satellite images of your selected land from ISRO BHUVAN.", icon: Icons.satellite_alt)),
+                          SizedBox(width: 25),
+                          Expanded(child: WorkCard(number: "2", title: "AI Analysis with Machine Learning", desc: "Our AI models analyze images using machine learning to detect unauthorized activity.", icon: Icons.memory)),
+                          SizedBox(width: 25),
+                          Expanded(child: WorkCard(number: "3", title: "Encroachment Detected", desc: "Suspicious changes are flagged with precise location & area.", icon: Icons.warning_amber)),
+                          SizedBox(width: 25),
+                          Expanded(child: WorkCard(number: "4", title: "Instant Reports", desc: "Get instant alerts & detailed reports to take action fast.", icon: Icons.description)),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
+              const SizedBox(height: 30),
+              // ================= BOTTOM SECTION =================
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 50),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 35),
+                  decoration: BoxDecoration(color: const Color(0xff06111f), borderRadius: BorderRadius.circular(30), border: Border.all(color: Colors.white10)),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      BottomItem(icon: Icons.location_city, title: "Municipal\nCorporation"),
+                      BottomItem(icon: Icons.settings, title: "Revenue\nDepartment"),
+                      BottomItem(icon: Icons.hub, title: "Smart City\nProgram"),
+                      BottomItem(icon: Icons.home_work, title: "Urban\nDevelopment"),
+                      BottomItem(icon: Icons.park, title: "Forest\nDepartment"),
+                      BottomItem(icon: Icons.apartment, title: "Public Works\nDepartment"),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
             ],
           ),
         ),
       ),
     );
   }
-
-
 
   Widget _buildLoginCard(String title, IconData icon, Color accent, bool isOfficer) {
     return ClipRRect(
@@ -2608,6 +2786,66 @@ class _BlinkingLightState extends State<BlinkingLight> with SingleTickerProvider
     return FadeTransition(
       opacity: _ctrl,
       child: Container(width: 8, height: 8, decoration: BoxDecoration(color: widget.color, shape: BoxShape.circle, boxShadow: [BoxShadow(color: widget.color, blurRadius: 5)])),
+    );
+  }
+}
+
+
+class FeatureItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  const FeatureItem({super.key, required this.icon, required this.title});
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.greenAccent, size: 36),
+        const SizedBox(width: 14),
+        Text(title, style: const TextStyle(color: Colors.white, fontSize: 20))
+      ],
+    );
+  }
+}
+
+class WorkCard extends StatelessWidget {
+  final String number;
+  final String title;
+  final String desc;
+  final IconData icon;
+  const WorkCard({super.key, required this.number, required this.title, required this.desc, required this.icon});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 320, padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(color: const Color(0xff081321), borderRadius: BorderRadius.circular(28), border: Border.all(color: Colors.white10)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(radius: 18, backgroundColor: Colors.greenAccent, child: Text(number, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
+          const SizedBox(height: 20),
+          Icon(icon, size: 70, color: Colors.white),
+          const SizedBox(height: 20),
+          Text(title, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 15),
+          Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 18, height: 1.6))
+        ],
+      ),
+    );
+  }
+}
+
+class BottomItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  const BottomItem({super.key, required this.icon, required this.title});
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white, size: 52),
+        const SizedBox(width: 16),
+        Text(title, style: const TextStyle(color: Colors.white, fontSize: 22, height: 1.4))
+      ],
     );
   }
 }
