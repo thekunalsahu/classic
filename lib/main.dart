@@ -34,15 +34,7 @@ class GravityApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Gravity AI Portal',
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF020617),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.05),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          hintStyle: const TextStyle(color: Colors.white30),
-        )
-      ),
+      theme: AppTheme.darkTheme,
       home: const LandingPage(),
     );
   }
@@ -1173,6 +1165,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 _scanning ? "Resolving location, loading satellite tiles, and preparing evidence layers..." : "Search a city, sector, or coordinates to start a land-risk analysis workflow.",
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
             ],
           ),
         ),
