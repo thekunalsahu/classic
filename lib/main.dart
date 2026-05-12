@@ -15,6 +15,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
+import 'core/theme.dart';
+import 'core/utils.dart';
 
 // ========================================================
 // GLOBAL CONFIG
@@ -132,14 +134,14 @@ class _LandingPageState extends State<LandingPage> {
                       SizedBox(height: isMobile ? 20 : 30),
                       _buildLoginCard("PUBLIC ACCESS", Icons.public, Colors.greenAccent, false),
                     ],
-                  ).animate().fadeIn(duration: 800.ms).slideX(begin: -0.1, end: 0),
+                  ).animate().fadeIn(duration: 600.ms, curve: Curves.easeOutCubic).slideX(begin: -0.1, end: 0),
                 ),
               ),
               Positioned(
                 top: MediaQuery.of(context).size.height * 0.22, right: MediaQuery.of(context).size.width * 0.08, 
                 child: SizedBox(
                   width: isMobile ? 0 : 540,
-                  child: isMobile ? const SizedBox() : _buildDetailsCard().animate().fadeIn(duration: 800.ms).slideX(begin: 0.1, end: 0),
+                  child: isMobile ? const SizedBox() : _buildDetailsCard().animate().fadeIn(duration: 600.ms, curve: Curves.easeOutCubic).slideX(begin: 0.1, end: 0),
                 ),
               ),
             ],
@@ -787,7 +789,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               const Text("Note: This dossier is cryptographically sealed and stored on the immutable administrative ledger.", style: TextStyle(color: Colors.white30, fontSize: 10, fontStyle: FontStyle.italic)),
             ],
           ),
-        ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1, end: 0),
+        ).animate().fadeIn(duration: 600.ms, curve: Curves.easeOutCubic, delay: 600.ms).slideY(begin: 0.1, end: 0),
         const SizedBox(height: 18),
         Row(
           children: [
@@ -1171,16 +1173,15 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 _scanning ? "Resolving location, loading satellite tiles, and preparing evidence layers..." : "Search a city, sector, or coordinates to start a land-risk analysis workflow.",
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white54, fontSize: 12),
-              ),
             ],
           ),
         ),
       )
       else ...[
-        const Text("Real-time Stats", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)).animate().fadeIn().slideY(begin: 0.2, end: 0), 
+        const Text("Real-time Stats", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)).animate().fadeIn(duration: 600.ms, curve: Curves.easeOutCubic).slideY(begin: 0.2, end: 0), 
         const SizedBox(height: 15),
-        _stat("Total Encroached Area", "$_area sq.m", Colors.white).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0), 
-        _stat("Detection Confidence", "${_accuracy.toStringAsFixed(1)}%", Colors.cyanAccent).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
+        _stat("Total Encroached Area", "$_area sq.m", Colors.white).animate().fadeIn(duration: 600.ms, curve: Curves.easeOutCubic, delay: 100.ms).slideY(begin: 0.2, end: 0), 
+        _stat("Detection Confidence", "${_accuracy.toStringAsFixed(1)}%", Colors.cyanAccent).animate().fadeIn(duration: 600.ms, curve: Curves.easeOutCubic, delay: 200.ms).slideY(begin: 0.2, end: 0),
         Container(
           padding: const EdgeInsets.all(10), 
           decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)), 
@@ -1189,18 +1190,18 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             const Divider(color: Colors.white24, height: 20), 
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_col("RISK SCORE", "$_risk/100", Colors.orangeAccent), _col("ECOLOGY LOSS", "-$_veg%", Colors.lightGreen)])
           ])
-        ).animate().fadeIn(delay: 300.ms).scale(begin: const Offset(0.95, 0.95)),
+        ).animate().fadeIn(duration: 600.ms, curve: Curves.easeOutCubic, delay: 300.ms).scale(begin: const Offset(0.95, 0.95)),
         const SizedBox(height: 25), 
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [ const Text("Anomaly Detection", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)), Icon(Icons.more_horiz, color: Colors.white54) ]), 
         const SizedBox(height: 10),
         Text("High-Precision Pixel Differencing: Unauthorized Construction Detected.", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)), 
         const SizedBox(height: 25),
         if (widget.isOfficer) ...[
-          Row(children: [Expanded(child: _btn("Compare", Icons.compare, _showComp)), const SizedBox(width: 10), Expanded(child: _btn("Report", Icons.picture_as_pdf, _makePDF))]).animate().fadeIn(delay: 400.ms),
+          Row(children: [Expanded(child: _btn("Compare", Icons.compare, _showComp)), const SizedBox(width: 10), Expanded(child: _btn("Report", Icons.picture_as_pdf, _makePDF))]).animate().fadeIn(duration: 600.ms, curve: Curves.easeOutCubic, delay: 400.ms),
           const SizedBox(height: 20),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [ const Text("Scan Actions", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)), Icon(Icons.more_horiz, color: Colors.white54) ]), 
           const SizedBox(height: 10),
-          _actionBtn("Draft Compliance Notice", Icons.auto_awesome, _showNotice).animate().fadeIn(delay: 500.ms),
+          _actionBtn("Draft Compliance Notice", Icons.auto_awesome, _showNotice).animate().fadeIn(duration: 600.ms, curve: Curves.easeOutCubic, delay: 500.ms),
           if (!_evictSent && !_canDemolish) _actionBtn("Set Review Timer", Icons.warning_amber_rounded, _startTimer).animate().fadeIn(delay: 600.ms),
           if (_evictSent) Container(width: double.infinity, padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orangeAccent)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("REVIEW TIMER ACTIVE", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 12)), const SizedBox(height: 5), Text("Deadline: $_timerSecs Seconds Remaining", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))])),
           if (_canDemolish) SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () { 
@@ -2333,7 +2334,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     }
   }
   
-  Widget _footer() => Container(width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 8), color: const Color(0xFF0B1221), child: const Center(child: Text("Gravity AI - Uses ISRO Bhuvan services - Siam-UNet Neural Networks", style: TextStyle(color: Colors.white54, fontSize: 11))));
+  Widget _footer() => SafeArea(child: Container(width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), color: const Color(0xFF0B1221), child: const Center(child: Text("Gravity AI - Uses ISRO Bhuvan services - Siam-UNet Neural Networks", style: TextStyle(color: Colors.white54, fontSize: 11)))));
   Widget _buildBoot() => Scaffold(backgroundColor: const Color(0xFF020617), body: Container(width: double.infinity, height: double.infinity, decoration: const BoxDecoration(color: Color(0xFF020617), image: DecorationImage(image: AssetImage(kEarthImg), fit: BoxFit.cover)), child: Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.only(left: 40.0), child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Image.asset("assets/images/logo.png", height: 75, errorBuilder: (c, e, s) => const Icon(Icons.auto_awesome, color: Colors.cyanAccent, size: 40)), const SizedBox(width: 8), const Text("Gravity AI", style: TextStyle(fontSize: 55, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -1.0))]), const SizedBox(height: 40), Container(width: 300, height: 4, decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(2)), child: Stack(children: [ AnimatedContainer(duration: const Duration(milliseconds: 250), width: 300 * _bootProgress, height: 4, decoration: const BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.white54, blurRadius: 10)])) ])), const SizedBox(height: 20), const Text("> INITIATING KERNEL...", style: TextStyle(color: Colors.white70, fontFamily: 'monospace', letterSpacing: 1.5, fontSize: 13))])))));
   void _showChatbot() {
     showModalBottomSheet(
