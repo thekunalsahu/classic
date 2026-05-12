@@ -72,44 +72,95 @@ class _LandingPageState extends State<LandingPage> {
 
   @override
   Widget build(BuildContext context) {
+    bool isMobile = MediaQuery.of(context).size.width < 900;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFF020617), // Match the dark theme
-      body: GestureDetector(
-        onTap: _showLoginDialog,
-        child: SizedBox(
-          width: double.infinity,
-          height: double.infinity,
-          child: Image.asset(
-            'assets/images/landing_page.png',
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.redAccent, size: 40),
-                    const SizedBox(height: 16),
-                    Text("Error loading image: $error", style: const TextStyle(color: Colors.white70)),
-                    const SizedBox(height: 8),
-                    const Text("Click here to try opening Login anyway", style: TextStyle(color: Colors.blueAccent)),
-                  ],
+      backgroundColor: const Color(0xFF020617),
+      body: Stack(
+        children: [
+          // --- BACKGROUND IMAGE ---
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/landing_page.png',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => _buildErrorState(error),
+            ),
+          ),
+
+          // --- INTERACTIVE OVERLAY BUTTONS ---
+          Positioned(
+            left: isMobile ? 20 : MediaQuery.of(context).size.width * 0.08,
+            bottom: isMobile ? 120 : MediaQuery.of(context).size.height * 0.28,
+            child: Row(
+              children: [
+                _buildModernButton(
+                  "OFFICER LOGIN", 
+                  Icons.admin_panel_settings_rounded, 
+                  () => _login(true),
+                  const Color(0xFF22C55E),
                 ),
-              );
-            },
-            frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-              if (wasSynchronouslyLoaded) return child;
-              return AnimatedOpacity(
-                opacity: frame == null ? 0 : 1,
-                duration: const Duration(milliseconds: 500),
-                curve: Curves.easeOut,
-                child: child,
-              );
-            },
+                const SizedBox(width: 20),
+                _buildModernButton(
+                  "PUBLIC ACCESS", 
+                  Icons.public_rounded, 
+                  () => _login(false),
+                  Colors.white70,
+                ),
+              ],
+            ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.2, end: 0),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernButton(String label, IconData icon, VoidCallback onTap, Color accent) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(15),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.4),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: const Color(0xFF22C55E).withOpacity(0.5), width: 1.5),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: accent, size: 20),
+                const SizedBox(width: 12),
+                Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.2)),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  Widget _buildErrorState(dynamic error) {
+    return Container(
+      color: const Color(0xFF020617),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 40),
+            const SizedBox(height: 16),
+            Text("Error loading image: $error", style: const TextStyle(color: Colors.white70)),
+            const SizedBox(height: 20),
+            ElevatedButton(onPressed: _showLoginDialog, child: const Text("Open Login Anyway")),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildLoginCard(String title, IconData icon, Color accent, bool isOfficer) {
     return ClipRRect(
