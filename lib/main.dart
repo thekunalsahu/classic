@@ -117,6 +117,7 @@ class _LandingPageState extends State<LandingPage> {
         width: pageWidth,
         height: pageHeight,
         child: Stack(
+          clipBehavior: Clip.none,
           children: [
             Positioned.fill(child: Container(color: const Color(0xFF020914))),
             Positioned(
@@ -134,6 +135,15 @@ class _LandingPageState extends State<LandingPage> {
                     alignment: Alignment.topCenter),
               ),
             ),
+            // Expanded erase patch to fully cover satellite from all angles
+            Positioned(
+              left: pageWidth * 0.600,
+              top: imageHeight * 0.010,
+              width: pageWidth * 0.200,
+              height: imageHeight * 0.120,
+              child: const IgnorePointer(child: _SatelliteErasePatch()),
+            ),
+            // Legacy Erase Patch removed in favor of ShaderMask cutout
             Positioned(
               top: 0,
               left: 0,
@@ -654,6 +664,22 @@ class _AIPillPulseState extends State<_AIPillPulse>
   }
 }
 
+class _SatelliteErasePatch extends StatelessWidget {
+  const _SatelliteErasePatch();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 18.0, sigmaY: 18.0),
+        child: Container(
+          color: const Color(0xFF020914).withOpacity(0.55),
+        ),
+      ),
+    );
+  }
+}
+
 class _ReferenceSatelliteScanLayer extends StatefulWidget {
   final double scale;
   final bool isMobile;
@@ -693,102 +719,64 @@ class _ReferenceSatelliteScanLayerState
           animation: _controller,
           builder: (context, _) {
             final t = _controller.value * math.pi * 2;
+            double clampToView(double value, double min, double max) =>
+                value.clamp(min, math.max(min, max)).toDouble();
+
             final drift =
-                math.sin(t) * (widget.isMobile ? 8 : 9) * widget.scale;
-            final satelliteWidth =
-                (widget.isMobile ? 148.0 : 270.0) * widget.scale;
-            final satelliteHeight = satelliteWidth * 155 / 270;
-            final baseLeft = widget.isMobile
-                ? constraints.maxWidth * 0.58
-                : constraints.maxWidth * 0.602;
-            final baseTop = widget.isMobile
-                ? constraints.maxHeight * 0.070
-                : constraints.maxHeight * 0.018;
-            final satelliteLeft = baseLeft + drift;
-            final satelliteTop =
-                baseTop + math.cos(t * 0.85) * 5 * widget.scale;
+                math.sin(t) * (widget.isMobile ? 6 : 8) * widget.scale;
+            final satelliteWidth = math.min(
+                (widget.isMobile ? 176.0 : 316.0) * widget.scale,
+                constraints.maxWidth * (widget.isMobile ? 0.40 : 0.27));
+            final satelliteHeight = satelliteWidth * 180 / 330;
+            final rawLeft = widget.isMobile
+                ? constraints.maxWidth * 0.565
+                : constraints.maxWidth * 0.585;
+            final rawTop = widget.isMobile
+                ? constraints.maxHeight * 0.078
+                : constraints.maxHeight * 0.010;
+            final baseLeft = clampToView(
+                rawLeft, 14, constraints.maxWidth - satelliteWidth - 18);
+            final baseTop = clampToView(
+                rawTop, 10, constraints.maxHeight - satelliteHeight - 18);
+            final satelliteLeft = clampToView(baseLeft + drift, 14,
+                constraints.maxWidth - satelliteWidth - 18);
+            final satelliteTop = clampToView(
+                baseTop + math.cos(t * 0.85) * 4 * widget.scale,
+                10,
+                constraints.maxHeight - satelliteHeight - 18);
             final satelliteCenter = Offset(
-              satelliteLeft + satelliteWidth * 0.30,
-              satelliteTop + satelliteHeight * 0.58,
+              satelliteLeft + satelliteWidth * 0.324,
+              satelliteTop + satelliteHeight * 0.606,
             );
             final beamSize = widget.isMobile
-                ? Size(102 * widget.scale, 156 * widget.scale)
-                : Size(140 * widget.scale, 205 * widget.scale);
+                ? Size(104 * widget.scale, 158 * widget.scale)
+                : Size(142 * widget.scale, 208 * widget.scale);
             final ringSize = (widget.isMobile ? 70 : 88) * widget.scale;
 
             return Stack(
               clipBehavior: Clip.none,
               children: [
-                if (!widget.isMobile)
-                  Positioned(
-                    left: baseLeft - 10 * widget.scale,
-                    top: baseTop - 6 * widget.scale,
-                    width: satelliteWidth + 34 * widget.scale,
-                    height: satelliteHeight + 30 * widget.scale,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF020914).withOpacity(0.78),
-                        gradient: RadialGradient(
-                          colors: [
-                            const Color(0xFF020914).withOpacity(0.96),
-                            const Color(0xFF020914).withOpacity(0.86),
-                            const Color(0xFF020914).withOpacity(0.20),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                // Satellite image without rings, dots, or beams
                 Positioned(
                   left: satelliteLeft,
                   top: satelliteTop,
                   width: satelliteWidth,
                   height: satelliteHeight,
-                  child: Image.asset(kSatelliteCutoutImg,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.high,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const SizedBox.shrink()),
-                ),
-                Positioned(
-                  left: satelliteCenter.dx - beamSize.width * 0.50,
-                  top: satelliteCenter.dy + 8 * widget.scale,
-                  width: beamSize.width,
-                  height: beamSize.height,
-                  child: Transform.rotate(
-                    angle: widget.isMobile ? -0.13 : -0.10,
-                    child: CustomPaint(
-                        painter:
-                            _ScanningConePainter(progress: _controller.value)),
+                  child: ColorFiltered(
+                    colorFilter: const ColorFilter.matrix(<double>[
+                      1, 0, 0, 0, 0,
+                      0, 1, 0, 0, 0,
+                      0, 0, 1, 0, 0,
+                      1.5, 1.5, 1.5, 0, -1, // Programmatically removes black background
+                    ]),
+                    child: Image.asset(kSatelliteCutoutImg,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const SizedBox.shrink()),
                   ),
                 ),
-                for (int i = 0; i < 3; i++)
-                  Positioned(
-                    left: satelliteCenter.dx - ringSize / 2,
-                    top: satelliteCenter.dy - ringSize / 2,
-                    width: ringSize,
-                    height: ringSize,
-                    child: CustomPaint(
-                        painter: _PulseRingPainter(
-                            progress: (_controller.value + i / 3) % 1)),
-                  ),
-                Positioned(
-                  left: satelliteCenter.dx - 7 * widget.scale,
-                  top: satelliteCenter.dy - 7 * widget.scale,
-                  child: Container(
-                    width: 14 * widget.scale,
-                    height: 14 * widget.scale,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFF39FF14),
-                      boxShadow: [
-                        BoxShadow(
-                            color: const Color(0xFF39FF14).withOpacity(0.9),
-                            blurRadius: 24 * widget.scale,
-                            spreadRadius: 4 * widget.scale)
-                      ],
-                    ),
-                  ),
-                ),
+                // Green pulse rings and center dot removed per user request
               ],
             );
           },
@@ -869,102 +857,6 @@ class _PulseRingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PulseRingPainter oldDelegate) =>
-      oldDelegate.progress != progress;
-}
-
-class _DashboardStandbySatellite extends StatefulWidget {
-  const _DashboardStandbySatellite();
-
-  @override
-  State<_DashboardStandbySatellite> createState() =>
-      _DashboardStandbySatelliteState();
-}
-
-class _DashboardStandbySatelliteState extends State<_DashboardStandbySatellite>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(seconds: 5))
-          ..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final t = _controller.value * math.pi * 2;
-        final drift = Offset(math.sin(t) * 8, math.cos(t * 0.8) * 5);
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned.fill(
-              child: CustomPaint(
-                  painter:
-                      _SatelliteSignalPainter(progress: _controller.value)),
-            ),
-            Positioned(
-              left: 18 + drift.dx,
-              top: 10 + drift.dy,
-              right: 0,
-              child: Transform.rotate(
-                angle: -0.10 + math.sin(t) * 0.04,
-                child: Image.asset(kSatelliteCutoutImg,
-                    fit: BoxFit.contain,
-                    filterQuality: FilterQuality.high,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.satellite_alt_rounded,
-                        color: Color(0xFF39FF14),
-                        size: 46)),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _SatelliteSignalPainter extends CustomPainter {
-  final double progress;
-
-  const _SatelliteSignalPainter({required this.progress});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final origin = Offset(size.width * 0.40, size.height * 0.57);
-    for (int i = 0; i < 4; i++) {
-      final p = (progress + i / 4) % 1;
-      final radius = size.shortestSide * (0.14 + p * 0.62);
-      final alpha = (1 - p).clamp(0.0, 1.0);
-      canvas.drawCircle(
-          origin,
-          radius,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.3
-            ..color = const Color(0xFF39FF14).withOpacity(alpha * 0.55));
-    }
-    canvas.drawCircle(
-        origin,
-        5,
-        Paint()
-          ..color = const Color(0xFF39FF14)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
-  }
-
-  @override
-  bool shouldRepaint(covariant _SatelliteSignalPainter oldDelegate) =>
       oldDelegate.progress != progress;
 }
 
@@ -1233,7 +1125,7 @@ class _LoginPageState extends State<LoginPage> {
           runSpacing: 10,
           alignment: isMobile ? WrapAlignment.center : WrapAlignment.start,
           children: const [
-            _BootChip(icon: Icons.satellite_alt, label: "SAT SCAN"),
+            _BootChip(icon: Icons.radar_rounded, label: "SAT SCAN"),
             _BootChip(icon: Icons.verified_user, label: "SECURE"),
             _BootChip(icon: Icons.radar_rounded, label: "AI READY"),
           ],
@@ -1357,7 +1249,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   double _bootProgress = 0.0;
   bool _scanning = false;
   bool _ready = false;
-  String _status = "SYSTEM STANDBY";
+  String _status = "READY FOR ANALYSIS";
 
   LatLng _loc = const LatLng(23.2599, 77.4126);
   double _currentZoom = 13.0;
@@ -1912,7 +1804,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               Navigator.pop(context);
             }),
           const Spacer(),
-          _drawerBtn(Icons.satellite_alt, "Bhu-Prahari", false,
+          _drawerBtn(Icons.policy_rounded, "Bhu-Prahari", false,
               color: Colors.orangeAccent, tap: () {
             Navigator.pop(context);
             _showBhuPrahari();
@@ -2325,7 +2217,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 _sideBtn(Icons.checklist_rtl_rounded, "Tasks", _navIndex == 3,
                     tap: () => setState(() => _navIndex = 3)),
               const Spacer(),
-              _sideBtn(Icons.satellite_alt, "Bhu-Prahari", false,
+              _sideBtn(Icons.policy_rounded, "Bhu-Prahari", false,
                   color: Colors.orangeAccent, tap: _showBhuPrahari),
               const SizedBox(height: 20),
             ])),
@@ -2520,14 +2412,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                             ),
                           ),
                         ),
-                        Positioned(
-                          right: isMobile ? 12 : 22,
-                          top: isMobile ? 12 : 18,
-                          width: isMobile ? 116 : 180,
-                          height: isMobile ? 86 : 128,
-                          child: const IgnorePointer(
-                              child: _DashboardStandbySatellite()),
-                        ),
                         Center(
                           child: Container(
                             width: isMobile ? 260 : 420,
@@ -2567,39 +2451,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                           ).animate().fadeIn(duration: 500.ms).scale(
                               begin: const Offset(0.96, 0.96),
                               end: const Offset(1, 1)),
-                        ),
-                        Positioned(
-                          bottom: 30,
-                          left: 30,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.satellite_alt,
-                                      color: Colors.cyanAccent, size: 40)
-                                  .animate(onPlay: (c) => c.repeat())
-                                  .shimmer(
-                                      duration: 2.seconds,
-                                      color: Colors.white30)
-                                  .shake(),
-                              const SizedBox(height: 10),
-                              const Text("SYSTEM STANDBY",
-                                      style: TextStyle(
-                                          color: Colors.cyanAccent,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 2))
-                                  .animate(onPlay: (c) => c.repeat())
-                                  .fadeIn(duration: 1.seconds)
-                                  .fadeOut(delay: 1.seconds),
-                              const SizedBox(height: 5),
-                              const Text("WAITING FOR ORBITAL COORDINATES...",
-                                  style: TextStyle(
-                                      color: Colors.white30,
-                                      fontSize: 10,
-                                      letterSpacing: 1)),
-                            ],
-                          ),
                         ),
                       ],
                     ),
@@ -2713,7 +2564,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Icon(
                           _isSatellite
-                              ? Icons.satellite_alt
+                              ? Icons.layers_rounded
                               : Icons.map_outlined,
                           color:
                               _isSatellite ? Colors.cyanAccent : Colors.white,
@@ -4311,7 +4162,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           padding: const EdgeInsets.all(20),
                           child: Row(
                             children: [
-                              const Icon(Icons.satellite_alt,
+                              const Icon(Icons.policy_rounded,
                                   color: Colors.orangeAccent, size: 30),
                               const SizedBox(width: 15),
                               Expanded(
@@ -5338,7 +5189,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     spacing: 10,
                     runSpacing: 10,
                     children: const [
-                      _BootChip(icon: Icons.satellite_alt, label: "SAT-LINK"),
+                      _BootChip(icon: Icons.radar_rounded, label: "SAT-LINK"),
                       _BootChip(icon: Icons.map_rounded, label: "BHUVAN"),
                       _BootChip(icon: Icons.verified_user, label: "SECURE"),
                       _BootChip(icon: Icons.auto_awesome, label: "AI READY"),
