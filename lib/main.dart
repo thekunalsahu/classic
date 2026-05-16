@@ -167,11 +167,11 @@ class _LandingPageState extends State<LandingPage> {
               ),
             ),
             Positioned(
-              left: pageWidth * 0.050,
-              top: imageHeight * 0.116,
-              width: 14 * (pageWidth / 1536).clamp(0.85, 1.2),
-              height: 14 * (pageWidth / 1536).clamp(0.85, 1.2),
-              child: const IgnorePointer(child: _BlinkingAIDot()),
+              left: pageWidth * 0.042,
+              top: imageHeight * 0.103,
+              width: pageWidth * 0.122,
+              height: imageHeight * 0.033,
+              child: const IgnorePointer(child: _AIPillPulse()),
             ),
           ],
         ),
@@ -183,8 +183,21 @@ class _LandingPageState extends State<LandingPage> {
     return Stack(
       children: [
         Positioned.fill(
-            child: Image.asset(kEarthImg,
-                fit: BoxFit.cover, alignment: Alignment.topRight)),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: const Alignment(0.66, -0.66),
+                radius: 1.28,
+                colors: [
+                  const Color(0xFF113427).withOpacity(0.96),
+                  const Color(0xFF071524),
+                  const Color(0xFF020914),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const Positioned.fill(child: _DashboardGridBackdrop()),
         Positioned.fill(
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -245,7 +258,7 @@ class _LandingPageState extends State<LandingPage> {
                 _AnimatedLandingButton(
                     key: const ValueKey('landing-user-login-mobile'),
                     label: "User Login",
-                    icon: Icons.arrow_forward_rounded,
+                    icon: Icons.fingerprint_rounded,
                     onTap: _openLoginPage,
                     primary: true,
                     fullWidth: true),
@@ -401,16 +414,6 @@ class _LandingHotspotState extends State<_LandingHotspot>
                                 ),
                               ),
                             ),
-                          ),
-                          Positioned(
-                            right: 18 + (math.sin(t * math.pi * 2) * 3),
-                            top: 0,
-                            bottom: 0,
-                            child: Icon(Icons.arrow_forward_rounded,
-                                color: primary
-                                    ? Colors.black.withOpacity(0.45)
-                                    : accent.withOpacity(0.85),
-                                size: 22),
                           ),
                         ],
                       ),
@@ -600,6 +603,57 @@ class _BlinkingAIDotState extends State<_BlinkingAIDot>
   }
 }
 
+class _AIPillPulse extends StatefulWidget {
+  const _AIPillPulse();
+
+  @override
+  State<_AIPillPulse> createState() => _AIPillPulseState();
+}
+
+class _AIPillPulseState extends State<_AIPillPulse>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 2))
+          ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final value = Curves.easeInOut.transform(_controller.value);
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+                color: const Color(0xFF39FF14).withOpacity(0.10 + value * 0.22),
+                width: 1.0),
+            boxShadow: [
+              BoxShadow(
+                  color:
+                      const Color(0xFF39FF14).withOpacity(0.04 + value * 0.18),
+                  blurRadius: 12 + value * 18,
+                  spreadRadius: value * 3),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _ReferenceSatelliteScanLayer extends StatefulWidget {
   final double scale;
   final bool isMobile;
@@ -640,25 +694,27 @@ class _ReferenceSatelliteScanLayerState
           builder: (context, _) {
             final t = _controller.value * math.pi * 2;
             final drift =
-                math.sin(t) * (widget.isMobile ? 12 : 9) * widget.scale;
+                math.sin(t) * (widget.isMobile ? 8 : 9) * widget.scale;
             final satelliteWidth =
-                (widget.isMobile ? 178.0 : 270.0) * widget.scale;
+                (widget.isMobile ? 148.0 : 270.0) * widget.scale;
             final satelliteHeight = satelliteWidth * 155 / 270;
             final baseLeft = widget.isMobile
-                ? constraints.maxWidth * 0.52
+                ? constraints.maxWidth * 0.58
                 : constraints.maxWidth * 0.602;
             final baseTop = widget.isMobile
-                ? constraints.maxHeight * 0.095
+                ? constraints.maxHeight * 0.070
                 : constraints.maxHeight * 0.018;
             final satelliteLeft = baseLeft + drift;
             final satelliteTop =
                 baseTop + math.cos(t * 0.85) * 5 * widget.scale;
             final satelliteCenter = Offset(
-              satelliteLeft + satelliteWidth * 0.42,
-              satelliteTop + satelliteHeight * 0.53,
+              satelliteLeft + satelliteWidth * 0.30,
+              satelliteTop + satelliteHeight * 0.58,
             );
-            final beamSize = Size(140 * widget.scale, 205 * widget.scale);
-            final ringSize = 88 * widget.scale;
+            final beamSize = widget.isMobile
+                ? Size(102 * widget.scale, 156 * widget.scale)
+                : Size(140 * widget.scale, 205 * widget.scale);
+            final ringSize = (widget.isMobile ? 70 : 88) * widget.scale;
 
             return Stack(
               clipBehavior: Clip.none,
@@ -695,11 +751,11 @@ class _ReferenceSatelliteScanLayerState
                 ),
                 Positioned(
                   left: satelliteCenter.dx - beamSize.width * 0.50,
-                  top: satelliteCenter.dy + 26 * widget.scale,
+                  top: satelliteCenter.dy + 8 * widget.scale,
                   width: beamSize.width,
                   height: beamSize.height,
                   child: Transform.rotate(
-                    angle: widget.isMobile ? -0.20 : -0.10,
+                    angle: widget.isMobile ? -0.13 : -0.10,
                     child: CustomPaint(
                         painter:
                             _ScanningConePainter(progress: _controller.value)),
@@ -813,6 +869,102 @@ class _PulseRingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PulseRingPainter oldDelegate) =>
+      oldDelegate.progress != progress;
+}
+
+class _DashboardStandbySatellite extends StatefulWidget {
+  const _DashboardStandbySatellite();
+
+  @override
+  State<_DashboardStandbySatellite> createState() =>
+      _DashboardStandbySatelliteState();
+}
+
+class _DashboardStandbySatelliteState extends State<_DashboardStandbySatellite>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 5))
+          ..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final t = _controller.value * math.pi * 2;
+        final drift = Offset(math.sin(t) * 8, math.cos(t * 0.8) * 5);
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: CustomPaint(
+                  painter:
+                      _SatelliteSignalPainter(progress: _controller.value)),
+            ),
+            Positioned(
+              left: 18 + drift.dx,
+              top: 10 + drift.dy,
+              right: 0,
+              child: Transform.rotate(
+                angle: -0.10 + math.sin(t) * 0.04,
+                child: Image.asset(kSatelliteCutoutImg,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.satellite_alt_rounded,
+                        color: Color(0xFF39FF14),
+                        size: 46)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SatelliteSignalPainter extends CustomPainter {
+  final double progress;
+
+  const _SatelliteSignalPainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final origin = Offset(size.width * 0.40, size.height * 0.57);
+    for (int i = 0; i < 4; i++) {
+      final p = (progress + i / 4) % 1;
+      final radius = size.shortestSide * (0.14 + p * 0.62);
+      final alpha = (1 - p).clamp(0.0, 1.0);
+      canvas.drawCircle(
+          origin,
+          radius,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.3
+            ..color = const Color(0xFF39FF14).withOpacity(alpha * 0.55));
+    }
+    canvas.drawCircle(
+        origin,
+        5,
+        Paint()
+          ..color = const Color(0xFF39FF14)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
+  }
+
+  @override
+  bool shouldRepaint(covariant _SatelliteSignalPainter oldDelegate) =>
       oldDelegate.progress != progress;
 }
 
@@ -959,11 +1111,23 @@ class _LoginPageState extends State<LoginPage> {
         return Stack(
           children: [
             Positioned.fill(
-              child: Image.asset(kEarthImg,
-                  fit: BoxFit.cover,
-                  alignment:
-                      isMobile ? Alignment.topRight : Alignment.topCenter),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: isMobile
+                        ? const Alignment(0.75, -0.70)
+                        : const Alignment(0.52, -0.62),
+                    radius: 1.15,
+                    colors: [
+                      const Color(0xFF0F2E2D).withOpacity(0.92),
+                      const Color(0xFF071321),
+                      const Color(0xFF020914),
+                    ],
+                  ),
+                ),
+              ),
             ),
+            const Positioned.fill(child: _DashboardGridBackdrop()),
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
@@ -1161,7 +1325,7 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 22),
               _AnimatedLandingButton(
                   label: "Login to Dashboard",
-                  icon: Icons.arrow_forward_rounded,
+                  icon: Icons.fingerprint_rounded,
                   onTap: _login,
                   primary: true,
                   fullWidth: true),
@@ -2327,13 +2491,17 @@ class _DashboardScreenState extends State<DashboardScreen>
                     key: const ValueKey("poster"),
                     width: double.infinity,
                     height: double.infinity,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: Color(0xFF020914),
-                      image: DecorationImage(
-                          image: AssetImage(kLandingReferenceImg),
-                          fit: BoxFit.cover,
-                          alignment: Alignment.topRight,
-                          opacity: 0.34),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF020914),
+                          const Color(0xFF09211F).withOpacity(0.96),
+                          const Color(0xFF07111E),
+                        ],
+                      ),
                     ),
                     child: Stack(
                       children: [
@@ -2352,10 +2520,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                             ),
                           ),
                         ),
-                        const Positioned.fill(
-                          child: IgnorePointer(
-                              child: _ReferenceSatelliteScanLayer(
-                                  scale: 0.78, isMobile: false)),
+                        Positioned(
+                          right: isMobile ? 12 : 22,
+                          top: isMobile ? 12 : 18,
+                          width: isMobile ? 116 : 180,
+                          height: isMobile ? 86 : 128,
+                          child: const IgnorePointer(
+                              child: _DashboardStandbySatellite()),
                         ),
                         Center(
                           child: Container(
@@ -5034,8 +5205,19 @@ class _DashboardScreenState extends State<DashboardScreen>
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset(kEarthImg,
-                fit: BoxFit.cover, alignment: Alignment.topCenter),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(0.45, -0.58),
+                  radius: 1.1,
+                  colors: [
+                    const Color(0xFF123329).withOpacity(0.95),
+                    const Color(0xFF071321),
+                    const Color(0xFF020914),
+                  ],
+                ),
+              ),
+            ),
           ),
           Positioned.fill(
             child: DecoratedBox(
@@ -5052,10 +5234,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
           ),
           const Positioned.fill(child: _DashboardGridBackdrop()),
-          const Positioned.fill(
-              child: IgnorePointer(
-                  child: _ReferenceSatelliteScanLayer(
-                      scale: 0.95, isMobile: false))),
           Center(
             child: Container(
               width: 560,
