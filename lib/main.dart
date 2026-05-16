@@ -27,6 +27,31 @@ const String kLandingReferenceImg = "assets/images/landing_reference.png";
 const String kGroqKey =
     String.fromEnvironment('GROQ_API_KEY', defaultValue: '');
 
+class BhuPrahariStore {
+  static final ValueNotifier<List<Map<String, dynamic>>> complaints =
+      ValueNotifier<List<Map<String, dynamic>>>([]);
+
+  static String nextId() {
+    return "BHU-${DateFormat('yyyyMMddHHmmss').format(DateTime.now())}";
+  }
+
+  static void submit(Map<String, dynamic> complaint) {
+    complaints.value = [complaint, ...complaints.value];
+  }
+
+  static void updateAction(String id, String status, String action) {
+    complaints.value = complaints.value.map((item) {
+      if (item['id'] != id) return item;
+      return {
+        ...item,
+        'status': status,
+        'action': action,
+        'updatedAt': DateTime.now(),
+      };
+    }).toList();
+  }
+}
+
 void main() {
   runApp(const GravityApp());
 }
@@ -106,6 +131,30 @@ class _LandingPageState extends State<LandingPage> {
         ));
   }
 
+  void _openPublicAccess() {
+    Navigator.push(
+        context,
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 620),
+          reverseTransitionDuration: const Duration(milliseconds: 360),
+          pageBuilder: (_, animation, __) =>
+              const DashboardScreen(isOfficer: false),
+          transitionsBuilder: (_, animation, __, child) {
+            final curved =
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+            return FadeTransition(
+              opacity: curved,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                        begin: const Offset(0.03, 0.02), end: Offset.zero)
+                    .animate(curved),
+                child: child,
+              ),
+            );
+          },
+        ));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -166,6 +215,20 @@ class _LandingPageState extends State<LandingPage> {
                 key: const ValueKey('landing-explore-features'),
                 tooltip: "Explore Features",
                 onTap: _openFeaturesPage,
+              ),
+            ),
+            Positioned(
+              right: pageWidth * 0.04,
+              top: math.max(8, imageHeight * 0.008),
+              width: pageWidth * 0.16,
+              height: 52,
+              child: _AnimatedLandingButton(
+                key: const ValueKey('landing-public-access'),
+                label: "Public Access",
+                icon: Icons.policy_rounded,
+                onTap: _openPublicAccess,
+                primary: false,
+                fullWidth: true,
               ),
             ),
             Positioned(
@@ -234,6 +297,17 @@ class _LandingPageState extends State<LandingPage> {
                             color: Colors.white,
                             fontSize: 29,
                             fontWeight: FontWeight.w800)),
+                    const Spacer(),
+                    SizedBox(
+                      width: 136,
+                      child: _AnimatedLandingButton(
+                          key: const ValueKey('landing-public-access-mobile'),
+                          label: "Public",
+                          icon: Icons.policy_rounded,
+                          onTap: _openPublicAccess,
+                          primary: false,
+                          fullWidth: true),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 38),
@@ -931,7 +1005,7 @@ class _LoginPageState extends State<LoginPage> {
           ],
         ),
         const SizedBox(height: 22),
-        Text("Secure Satellite Command Login",
+        Text("Secure User Command Login",
             textAlign: isMobile ? TextAlign.center : TextAlign.left,
             style: TextStyle(
                 color: Colors.white,
@@ -940,7 +1014,7 @@ class _LoginPageState extends State<LoginPage> {
                 fontWeight: FontWeight.w900)),
         const SizedBox(height: 16),
         Text(
-            "Officer credentials unlock live encroachment detection, scan reports, Bhuvan layers, drone evidence, and task workflows.",
+            "User credentials unlock live encroachment detection, scan reports, Bhuvan layers, evidence, and task workflows.",
             textAlign: isMobile ? TextAlign.center : TextAlign.left,
             style: const TextStyle(
                 color: Colors.white70, fontSize: 15, height: 1.55)),
@@ -989,7 +1063,7 @@ class _LoginPageState extends State<LoginPage> {
                       color: Color(0xFF39FF14), size: 26),
                   SizedBox(width: 10),
                   Expanded(
-                    child: Text("Officer Access",
+                    child: Text("User Access",
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 22,
@@ -1096,6 +1170,11 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool _canDemolish = false;
   String _stateName = "MADHYA PRADESH";
   List<Map<String, String>> _tasksList = [];
+  final TextEditingController _citizenNameCtrl = TextEditingController();
+  final TextEditingController _citizenPhoneCtrl = TextEditingController();
+  final TextEditingController _citizenComplaintCtrl = TextEditingController();
+  final TextEditingController _citizenStatusCtrl = TextEditingController();
+  String? _citizenEvidenceName;
 
   // Navigation State
   int _navIndex = 0; // 0: Dashboard, 1: Map, 2: Reports, 3: Tasks
@@ -1108,7 +1187,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     {
       "role": "ai",
       "text":
-          "Hello Officer. I am Gravity AI. How can I assist you with urban administration today?"
+          "Hello User. I am Gravity AI. How can I assist you with land administration today?"
     }
   ];
   bool _isListening = false;
@@ -1178,6 +1257,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     _areaCtrl.dispose();
     _timerCtrl.dispose();
     _droneIpCtrl.dispose();
+    _citizenNameCtrl.dispose();
+    _citizenPhoneCtrl.dispose();
+    _citizenComplaintCtrl.dispose();
+    _citizenStatusCtrl.dispose();
     super.dispose();
   }
 
@@ -1551,6 +1634,75 @@ class _DashboardScreenState extends State<DashboardScreen>
           isFilled: true));
   }
 
+  void _submitBhuPrahariComplaint() {
+    final target = _searchCtrl.text.trim().isEmpty
+        ? "Pinned map location"
+        : _searchCtrl.text.trim();
+    final description = _citizenComplaintCtrl.text.trim();
+    final reporter =
+        _isAnonymous ? "Anonymous Citizen" : _citizenNameCtrl.text.trim();
+
+    if (!_isAnonymous && reporter.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Name ya anonymous option select karein."),
+          backgroundColor: Colors.orange));
+      return;
+    }
+    if (description.length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Complaint details thoda clearly likhein."),
+          backgroundColor: Colors.orange));
+      return;
+    }
+
+    final id = BhuPrahariStore.nextId();
+    BhuPrahariStore.submit({
+      "id": id,
+      "reporter": reporter,
+      "phone": _isAnonymous ? "" : _citizenPhoneCtrl.text.trim(),
+      "target": target,
+      "description": description,
+      "evidence": _citizenEvidenceName ?? "No photo uploaded",
+      "lat": _loc.latitude,
+      "lon": _loc.longitude,
+      "status": "New Complaint",
+      "action": "Awaiting user review",
+      "submittedAt": DateTime.now(),
+    });
+
+    setState(() {
+      if (!_hasSearched || !_ready) {
+        _applyDemoScanState(target);
+      }
+      _hasSearched = true;
+      _status = "BHU-PRAHARI COMPLAINT SUBMITTED - $id";
+      _citizenStatusCtrl.text = id;
+      _citizenComplaintCtrl.clear();
+      _citizenEvidenceName = null;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Complaint submitted: $id"),
+        backgroundColor: Colors.green));
+  }
+
+  Future<void> _pickCitizenEvidence() async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+      );
+      if (result == null || result.files.isEmpty) return;
+      setState(() => _citizenEvidenceName = result.files.first.name);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Evidence attached: ${result.files.first.name}"),
+          backgroundColor: Colors.green));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Upload error: $e"), backgroundColor: Colors.red));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_booting) return _buildBoot();
@@ -1628,36 +1780,36 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ),
           ),
-          _drawerBtn(Icons.dashboard, "Dashboard", _navIndex == 0, tap: () {
+          _drawerBtn(
+              widget.isOfficer ? Icons.dashboard : Icons.policy_rounded,
+              widget.isOfficer ? "Dashboard" : "Public Access",
+              _navIndex == 0, tap: () {
             setState(() => _navIndex = 0);
             Navigator.pop(context);
           }),
-          _drawerBtn(Icons.map_outlined, "Map", _navIndex == 1, tap: () {
-            setState(() => _navIndex = 1);
-            Navigator.pop(context);
-          }),
-          _drawerBtn(Icons.description_outlined, "Reports", _navIndex == 2,
-              tap: () {
-            setState(() => _navIndex = 2);
-            Navigator.pop(context);
-          }),
-          _drawerBtn(Icons.forest_rounded, "Forest Watch", _navIndex == 4,
-              tap: () {
-            setState(() => _navIndex = 4);
-            Navigator.pop(context);
-          }),
-          if (widget.isOfficer)
-            _drawerBtn(Icons.checklist_rtl_rounded, "Tasks", _navIndex == 3,
+          if (widget.isOfficer) ...[
+            _drawerBtn(Icons.map_outlined, "Map", _navIndex == 1, tap: () {
+              setState(() => _navIndex = 1);
+              Navigator.pop(context);
+            }),
+            _drawerBtn(Icons.description_outlined, "Reports", _navIndex == 2,
+                tap: () {
+              setState(() => _navIndex = 2);
+              Navigator.pop(context);
+            }),
+            _drawerBtn(Icons.forest_rounded, "Forest Watch", _navIndex == 4,
+                tap: () {
+              setState(() => _navIndex = 4);
+              Navigator.pop(context);
+            }),
+            _drawerBtn(
+                Icons.assignment_late_rounded, "Complaints", _navIndex == 3,
                 tap: () {
               setState(() => _navIndex = 3);
               Navigator.pop(context);
             }),
+          ],
           const Spacer(),
-          _drawerBtn(Icons.policy_rounded, "Bhu-Prahari", false,
-              color: Colors.orangeAccent, tap: () {
-            Navigator.pop(context);
-            _showBhuPrahari();
-          }),
           const SizedBox(height: 20),
         ],
       ),
@@ -2542,86 +2694,429 @@ class _DashboardScreenState extends State<DashboardScreen>
         backgroundColor: Colors.green));
   }
 
+  Widget _publicAccessModule(bool isMobile) {
+    final map = _mapView(isMobile);
+    final panel = _publicAccessPanel(isMobile);
+
+    if (isMobile) {
+      return ListView(
+        padding: const EdgeInsets.all(12),
+        children: [
+          SizedBox(
+              height: MediaQuery.of(context).size.height * 0.46, child: map),
+          const SizedBox(height: 12),
+          panel,
+        ],
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Row(
+        children: [
+          Expanded(flex: 7, child: map),
+          const SizedBox(width: 8),
+          Expanded(flex: 4, child: panel),
+        ],
+      ),
+    );
+  }
+
+  Widget _publicAccessPanel(bool isMobile) {
+    return Container(
+      decoration: BoxDecoration(
+          color: const Color(0xFF0B1221),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white10)),
+      padding: const EdgeInsets.all(16),
+      child: SingleChildScrollView(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: const [
+            Icon(Icons.policy_rounded, color: Colors.orangeAccent, size: 22),
+            SizedBox(width: 10),
+            Expanded(
+                child: Text("Public Access: Bhu-Prahari",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold))),
+          ]),
+          const SizedBox(height: 8),
+          const Text(
+              "Land encroachment details dekhein, map par location verify karein, aur suspected encroachment complaint submit karein.",
+              style:
+                  TextStyle(color: Colors.white60, fontSize: 12, height: 1.45)),
+          const SizedBox(height: 16),
+          _publicComplaintForm(),
+          const SizedBox(height: 14),
+          _publicLandDetailsCard(),
+          const SizedBox(height: 14),
+          _publicComplaintHistory(),
+        ]),
+      ),
+    );
+  }
+
+  Widget _publicLandDetailsCard() {
+    final target = _searchCtrl.text.trim().isEmpty
+        ? "Pinned map location"
+        : _searchCtrl.text.trim();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF39FF14).withOpacity(0.2)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text("Land Encroachment Details",
+            style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14)),
+        const SizedBox(height: 12),
+        _publicInfoRow("Target", target),
+        _publicInfoRow("Coordinates",
+            "${_loc.latitude.toStringAsFixed(5)}, ${_loc.longitude.toStringAsFixed(5)}"),
+        _publicInfoRow(
+            "Detected Area", _ready ? "$_area sq.m" : "Run map search"),
+        _publicInfoRow("Risk", _ready ? "$_risk/100" : "Pending"),
+        _publicInfoRow(
+            "Status", _ready ? "Satellite analysis ready" : "Awaiting search"),
+      ]),
+    );
+  }
+
+  Widget _publicComplaintForm() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.orangeAccent.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orangeAccent.withOpacity(0.25)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text("Bhu-Prahari Complaint",
+            style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14)),
+        const SizedBox(height: 12),
+        if (!_isAnonymous) ...[
+          TextField(
+            controller: _citizenNameCtrl,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+            decoration: const InputDecoration(
+              hintText: "Your name",
+              prefixIcon:
+                  Icon(Icons.person_outline, color: Colors.orangeAccent),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        TextField(
+          controller: _citizenComplaintCtrl,
+          minLines: 2,
+          maxLines: 3,
+          style: const TextStyle(color: Colors.white, fontSize: 13),
+          decoration: const InputDecoration(
+            hintText: "Encroachment details, landmark, photo/report notes...",
+            prefixIcon:
+                Icon(Icons.report_problem_outlined, color: Colors.orangeAccent),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+        ),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: _pickCitizenEvidence,
+          icon: const Icon(Icons.upload_file_rounded, size: 18),
+          label: Text(
+            _citizenEvidenceName == null
+                ? "Upload photo/report"
+                : _citizenEvidenceName!,
+            overflow: TextOverflow.ellipsis,
+          ),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.white,
+            side: BorderSide(color: Colors.orangeAccent.withOpacity(0.45)),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(children: [
+          Checkbox(
+              value: _isAnonymous,
+              activeColor: const Color(0xFF39FF14),
+              onChanged: (v) => setState(() => _isAnonymous = v ?? false)),
+          const Expanded(
+              child: Text("Submit anonymously",
+                  style: TextStyle(color: Colors.white70, fontSize: 12))),
+        ]),
+        SizedBox(
+          width: double.infinity,
+          child: _btn("Submit to Bhu-Prahari", Icons.send_rounded,
+              _submitBhuPrahariComplaint),
+        ),
+      ]),
+    );
+  }
+
+  Widget _publicComplaintHistory() {
+    return ValueListenableBuilder<List<Map<String, dynamic>>>(
+      valueListenable: BhuPrahariStore.complaints,
+      builder: (context, complaints, _) {
+        final statusId = _citizenStatusCtrl.text.trim();
+        final matches = statusId.isEmpty
+            ? complaints.take(3).toList()
+            : complaints
+                .where((item) =>
+                    item['id'].toString().toLowerCase() ==
+                    statusId.toLowerCase())
+                .toList();
+        return Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.white10),
+          ),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text("Submitted Complaint Status",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14)),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _citizenStatusCtrl,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                hintText: "Enter complaint ID to check status",
+                prefixIcon:
+                    Icon(Icons.search_rounded, color: Color(0xFF39FF14)),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (matches.isEmpty)
+              Text(
+                  statusId.isEmpty
+                      ? "No public complaints submitted yet."
+                      : "No complaint found for this ID.",
+                  style: const TextStyle(color: Colors.white38, fontSize: 12))
+            else
+              ...matches.map((item) => _publicComplaintTile(item)),
+          ]),
+        );
+      },
+    );
+  }
+
+  Widget _publicComplaintTile(Map<String, dynamic> item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+          color: const Color(0xFF06111F),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white10)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(item['id'].toString(),
+            style: const TextStyle(
+                color: Color(0xFF39FF14),
+                fontSize: 12,
+                fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(item['status'].toString(),
+            style: const TextStyle(color: Colors.white, fontSize: 12)),
+        const SizedBox(height: 3),
+        Text(item['action'].toString(),
+            style: const TextStyle(color: Colors.white54, fontSize: 11)),
+        if ((item['evidence'] ?? '').toString().isNotEmpty) ...[
+          const SizedBox(height: 3),
+          Text("Evidence: ${item['evidence']}",
+              style: const TextStyle(color: Colors.white38, fontSize: 10)),
+        ],
+      ]),
+    );
+  }
+
+  Widget _publicInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(children: [
+        SizedBox(
+          width: 100,
+          child: Text(label,
+              style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold)),
+        ),
+        Expanded(
+            child: Text(value,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700))),
+      ]),
+    );
+  }
+
+  Widget _officerComplaintRecords(bool isMobile) {
+    return ValueListenableBuilder<List<Map<String, dynamic>>>(
+      valueListenable: BhuPrahariStore.complaints,
+      builder: (context, complaints, _) {
+        return Padding(
+          padding: EdgeInsets.all(isMobile ? 14 : 20),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text("BHU-PRAHARI COMPLAINT RECORDS",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold)),
+            const SizedBox(height: 5),
+            Text("${complaints.length} public complaint record(s).",
+                style: const TextStyle(color: Colors.white54)),
+            const SizedBox(height: 20),
+            Expanded(
+              child: complaints.isEmpty
+                  ? const Center(
+                      child: Text(
+                          "No Bhu-Prahari complaints submitted by public users yet.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white54)))
+                  : ListView.builder(
+                      itemCount: complaints.length,
+                      itemBuilder: (context, index) =>
+                          _officerComplaintCard(complaints[index], isMobile),
+                    ),
+            ),
+          ]),
+        );
+      },
+    );
+  }
+
+  Widget _officerComplaintCard(Map<String, dynamic> item, bool isMobile) {
+    final lat = (item['lat'] as num).toDouble();
+    final lon = (item['lon'] as num).toDouble();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white10)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Icon(Icons.policy_rounded,
+              color: Colors.orangeAccent, size: 26),
+          const SizedBox(width: 12),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text("${item['id']} • ${item['target']}",
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold)),
+              const SizedBox(height: 5),
+              Text("Reporter: ${item['reporter']}",
+                  style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              const SizedBox(height: 5),
+              Text(
+                  "Location: ${lat.toStringAsFixed(5)}, ${lon.toStringAsFixed(5)}",
+                  style: const TextStyle(
+                      color: Color(0xFFB7FFC0),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Text(item['description'].toString(),
+                  style: const TextStyle(
+                      color: Colors.white70, fontSize: 12, height: 1.4)),
+              const SizedBox(height: 6),
+              Text("Evidence: ${item['evidence'] ?? 'No photo uploaded'}",
+                  style: const TextStyle(color: Colors.white38, fontSize: 11)),
+            ]),
+          ),
+          const SizedBox(width: 10),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text(item['status'].toString(),
+                style: const TextStyle(
+                    color: Colors.orangeAccent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold)),
+            const SizedBox(height: 5),
+            Text(item['action'].toString(),
+                textAlign: TextAlign.right,
+                style: const TextStyle(color: Colors.white38, fontSize: 10)),
+          ]),
+        ]),
+        const SizedBox(height: 14),
+        Wrap(spacing: 10, runSpacing: 10, children: [
+          _smallComplaintAction("View Map", Icons.map_outlined, () {
+            setState(() {
+              _loc = LatLng(lat, lon);
+              _searchCtrl.text = item['target'].toString();
+              _hasSearched = true;
+              _ready = true;
+              _navIndex = 0;
+              _applyDemoScanState(item['target'].toString());
+            });
+          }),
+          _smallComplaintAction("Start Review", Icons.fact_check_outlined, () {
+            BhuPrahariStore.updateAction(
+                item['id'].toString(), "Under Review", "User review started");
+          }),
+          _smallComplaintAction(
+              "Field Inspection", Icons.assignment_turned_in_rounded, () {
+            BhuPrahariStore.updateAction(item['id'].toString(),
+                "Inspection Scheduled", "Field team assigned for verification");
+          }),
+          _smallComplaintAction("Resolve", Icons.verified_rounded, () {
+            BhuPrahariStore.updateAction(
+                item['id'].toString(), "Resolved", "Action completed");
+          }),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _smallComplaintAction(
+      String label, IconData icon, VoidCallback onPressed) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 15),
+      label: Text(label, style: const TextStyle(fontSize: 11)),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.white,
+        side: const BorderSide(color: Colors.white24),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
   Widget _buildMainContent(bool isMobile) {
+    if (!widget.isOfficer) {
+      return _publicAccessModule(isMobile);
+    }
     if (_navIndex == 1) {
       return Padding(
           padding: const EdgeInsets.all(12.0), child: _mapView(isMobile));
     } else if (_navIndex == 2) {
       return _reportsModule(isMobile);
     } else if (_navIndex == 3) {
-      return Padding(
-          padding: const EdgeInsets.all(20),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text("OFFICER TASKS",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 5),
-            Text("${_tasksList.length} active tasks recorded.",
-                style: const TextStyle(color: Colors.white54)),
-            const SizedBox(height: 20),
-            Expanded(
-                child: _tasksList.isEmpty
-                    ? const Center(
-                        child: Text("No tasks queued.",
-                            style: TextStyle(color: Colors.white54)))
-                    : ListView.builder(
-                        itemCount: _tasksList.length,
-                        itemBuilder: (c, i) {
-                          var t = _tasksList[i];
-                          bool isSuccess = t["status"] == "Success";
-                          return Container(
-                              margin: const EdgeInsets.only(bottom: 10),
-                              padding: const EdgeInsets.all(15),
-                              decoration: BoxDecoration(
-                                  color: const Color(0xFF1E293B),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.white10)),
-                              child: Row(children: [
-                                Icon(
-                                    isSuccess
-                                        ? Icons.check_circle
-                                        : Icons.pending_actions,
-                                    color: isSuccess
-                                        ? Colors.green
-                                        : Colors.orange),
-                                const SizedBox(width: 15),
-                                Expanded(
-                                    child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                      Text(t["title"]!,
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16)),
-                                      const SizedBox(height: 5),
-                                      Text(t["desc"]!,
-                                          style: const TextStyle(
-                                              color: Colors.white54,
-                                              fontSize: 12)),
-                                    ])),
-                                Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(t["status"]!,
-                                          style: TextStyle(
-                                              color: isSuccess
-                                                  ? Colors.green
-                                                  : Colors.orange,
-                                              fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 5),
-                                      Text(t["time"]!,
-                                          style: const TextStyle(
-                                              color: Colors.white30,
-                                              fontSize: 10)),
-                                    ])
-                              ]));
-                        }))
-          ]));
+      return _officerComplaintRecords(isMobile);
     } else if (_navIndex == 4) {
       return _forestWatchModule(isMobile);
     }
@@ -2671,20 +3166,23 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
             child: Column(children: [
               const SizedBox(height: 20),
-              _sideBtn(Icons.dashboard, "Dashboard", _navIndex == 0,
+              _sideBtn(
+                  widget.isOfficer ? Icons.dashboard : Icons.policy_rounded,
+                  widget.isOfficer ? "Dashboard" : "Public",
+                  _navIndex == 0,
                   tap: () => setState(() => _navIndex = 0)),
-              _sideBtn(Icons.map_outlined, "Map", _navIndex == 1,
-                  tap: () => setState(() => _navIndex = 1)),
-              _sideBtn(Icons.description_outlined, "Reports", _navIndex == 2,
-                  tap: () => setState(() => _navIndex = 2)),
-              _sideBtn(Icons.forest_rounded, "Forest", _navIndex == 4,
-                  tap: () => setState(() => _navIndex = 4)),
-              if (widget.isOfficer)
-                _sideBtn(Icons.checklist_rtl_rounded, "Tasks", _navIndex == 3,
+              if (widget.isOfficer) ...[
+                _sideBtn(Icons.map_outlined, "Map", _navIndex == 1,
+                    tap: () => setState(() => _navIndex = 1)),
+                _sideBtn(Icons.description_outlined, "Reports", _navIndex == 2,
+                    tap: () => setState(() => _navIndex = 2)),
+                _sideBtn(Icons.forest_rounded, "Forest", _navIndex == 4,
+                    tap: () => setState(() => _navIndex = 4)),
+                _sideBtn(
+                    Icons.assignment_late_rounded, "Complaints", _navIndex == 3,
                     tap: () => setState(() => _navIndex = 3)),
+              ],
               const Spacer(),
-              _sideBtn(Icons.policy_rounded, "Bhu-Prahari", false,
-                  color: Colors.orangeAccent, tap: _showBhuPrahari),
               const SizedBox(height: 20),
             ])),
       ),
@@ -2769,8 +3267,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 const SizedBox(width: 15),
                 Container(height: 20, width: 2, color: Colors.white24),
                 const SizedBox(width: 15),
-                Text(
-                    widget.isOfficer ? "Officer Dashboard" : "Public Dashboard",
+                Text(widget.isOfficer ? "User Dashboard" : "Public Access",
                     style: const TextStyle(
                         color: Color(0xFFB7FFC0),
                         fontSize: 16,
@@ -2783,7 +3280,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text("AUTHORIZED OFFICER",
+                        Text("AUTHORIZED USER",
                             style: TextStyle(
                                 color: Color(0xFF39FF14),
                                 fontWeight: FontWeight.bold,
@@ -2805,27 +3302,33 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ],
               ],
               const SizedBox(width: 15),
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none,
-                        color: Colors.white),
-                    onPressed: () => _showNotificationPanel(),
-                  ),
-                  if (_tasksList.isNotEmpty)
-                    Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                                color: Colors.redAccent,
-                                shape: BoxShape.circle)))
-                ],
-              ),
-              const SizedBox(width: 10),
+              if (widget.isOfficer) ...[
+                ValueListenableBuilder<List<Map<String, dynamic>>>(
+                    valueListenable: BhuPrahariStore.complaints,
+                    builder: (context, complaints, _) {
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.notifications_none,
+                                color: Colors.white),
+                            onPressed: () => _showNotificationPanel(),
+                          ),
+                          if (complaints.isNotEmpty || _tasksList.isNotEmpty)
+                            Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                        color: Colors.redAccent,
+                                        shape: BoxShape.circle)))
+                        ],
+                      );
+                    }),
+                const SizedBox(width: 10),
+              ],
               IconButton(
                   onPressed: () {
                     _timer?.cancel();
@@ -2905,10 +3408,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                                         fontSize: 18,
                                         letterSpacing: 1.1)),
                                 const SizedBox(height: 8),
-                                const Text(
-                                    "Enter a city, sector, or coordinates to activate satellite comparison, AI risk scoring, reports, and officer tasks.",
+                                Text(
+                                    widget.isOfficer
+                                        ? "Enter a city, sector, or coordinates to activate satellite comparison, AI risk scoring, reports, and user tasks."
+                                        : "Search a city, sector, or coordinates to view land encroachment details and submit a Bhu-Prahari complaint.",
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                         color: Colors.white60,
                                         fontSize: 12,
                                         height: 1.45)),
@@ -2931,20 +3436,20 @@ class _DashboardScreenState extends State<DashboardScreen>
                         urlTemplate: _getTimelineTileUrl(),
                         userAgentPackageName: 'com.gravity.ai',
                       ),
-                      if (_showBhuvanWms)
+                      if (widget.isOfficer && _showBhuvanWms)
                         TileLayer(
                           urlTemplate:
                               'https://bhuvan-vec1.nrsc.gov.in/bhuvan/gwc/service/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&LAYER=lulc:ap_lulc_50k_1516&STYLE=default&TILEMATRIXSET=EPSG:900913&TILEMATRIX=EPSG:900913:{z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png',
                           userAgentPackageName: 'com.gravity.ai',
                         ),
-                      if (_showForestWatch && _forestReady)
+                      if (widget.isOfficer && _showForestWatch && _forestReady)
                         TileLayer(
                           wmsOptions: _bhuvanLulcWmsOptions(),
                           userAgentPackageName: 'com.gravity.ai',
                         ),
                       PolygonLayer(polygons: _govtPolygons),
                       PolygonLayer(polygons: _anomalyPolygons),
-                      if (_showForestWatch) ...[
+                      if (widget.isOfficer && _showForestWatch) ...[
                         PolygonLayer(polygons: _forestWatchPolygons()),
                         MarkerLayer(markers: _forestWatchMarkers()),
                       ],
@@ -3056,7 +3561,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                 )),
           // Bhuvan WMS Toggle
-          if (_hasSearched)
+          if (_hasSearched && widget.isOfficer)
             Positioned(
                 top: isMobile ? 115 : 185,
                 left: isMobile ? 15 : 20,
@@ -3090,7 +3595,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                 )),
           // Timeline Toggle Button
-          if (_hasSearched)
+          if (_hasSearched && widget.isOfficer)
             Positioned(
                 top: isMobile ? 160 : 240,
                 left: isMobile ? 15 : 20,
@@ -3124,7 +3629,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                 )),
           // Forest Watch Overlay Toggle
-          if (_hasSearched)
+          if (_hasSearched && widget.isOfficer)
             Positioned(
                 top: isMobile ? 205 : 295,
                 left: isMobile ? 15 : 20,
@@ -3193,7 +3698,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           style: TextStyle(color: Colors.white, fontSize: 11))
                     ]))),
           // Change Detection Timeline Slider
-          if (_hasSearched && _showTimeline)
+          if (_hasSearched && widget.isOfficer && _showTimeline)
             Positioned(
               bottom: isMobile ? 60 : 65,
               left: isMobile ? 15 : 20,
@@ -3320,7 +3825,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             const SizedBox(height: 20),
             if (widget.isOfficer) ...[
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text("Quick Officer Tools",
+                const Text("Quick User Tools",
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -4294,7 +4799,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 ])),
                             const SizedBox(height: 20),
                             const Text(
-                                "This compliance draft is prepared by Gravity AI after a geospatial comparison of registered boundary records, satellite imagery, and field-risk indicators. It is intended for officer review before any administrative action.",
+                                "This compliance draft is prepared by Gravity AI after a geospatial comparison of registered boundary records, satellite imagery, and field-risk indicators. It is intended for user review before any administrative action.",
                                 style: TextStyle(
                                     color: Colors.black87,
                                     fontSize: 13,
@@ -5236,6 +5741,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _showNotificationPanel() {
+    final complaints = BhuPrahariStore.complaints.value;
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -5272,13 +5778,25 @@ class _DashboardScreenState extends State<DashboardScreen>
                               onPressed: () => Navigator.pop(c))
                         ])),
                 const Divider(color: Colors.white10, height: 1),
-                if (_tasksList.isEmpty)
+                if (_tasksList.isEmpty && complaints.isEmpty)
                   const Padding(
                       padding: EdgeInsets.all(30),
                       child: Text("No new notifications",
                           style:
                               TextStyle(color: Colors.white30, fontSize: 12)))
-                else
+                else ...[
+                  ...complaints.take(4).map((item) => ListTile(
+                        leading: const Icon(Icons.assignment_late_rounded,
+                            color: Colors.orangeAccent, size: 20),
+                        title: Text(item["id"].toString(),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold)),
+                        subtitle: Text(item["target"].toString(),
+                            style: const TextStyle(
+                                color: Colors.white30, fontSize: 11)),
+                      )),
                   ..._tasksList.take(4).map((t) => ListTile(
                         leading: Icon(Icons.warning_amber,
                             color: t["status"] == "Success"
@@ -5294,6 +5812,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                             style: const TextStyle(
                                 color: Colors.white30, fontSize: 11)),
                       )),
+                ],
               ],
             ),
           ),
@@ -5554,7 +6073,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _buildBoot() {
     final percent = (_bootProgress * 100).round().clamp(0, 100);
     final status = percent < 30
-        ? "AUTHENTICATING OFFICER SESSION"
+        ? "AUTHENTICATING USER SESSION"
         : percent < 62
             ? "SYNCING ISRO BHUVAN LAYERS"
             : percent < 92
@@ -5921,7 +6440,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             {
               "role": "system",
               "content":
-                  "You are Gravity AI, a geospatial intelligence assistant for ISRO Bhuvan platform. You help urban officers with encroachment detection, land mapping, and administrative tasks. Be professional, concise, and futuristic."
+                  "You are Gravity AI, a geospatial intelligence assistant for ISRO Bhuvan platform. You help users with encroachment detection, land mapping, and administrative tasks. Be professional, concise, and futuristic."
             },
             {"role": "user", "content": userMsg}
           ]
