@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import 'dart:ui' as ui;
 import 'dart:convert';
 import 'dart:async';
 import 'dart:math' as math;
@@ -135,15 +134,6 @@ class _LandingPageState extends State<LandingPage> {
                     alignment: Alignment.topCenter),
               ),
             ),
-            // Expanded erase patch to fully cover satellite from all angles
-            Positioned(
-              left: pageWidth * 0.600,
-              top: imageHeight * 0.010,
-              width: pageWidth * 0.200,
-              height: imageHeight * 0.120,
-              child: const IgnorePointer(child: _SatelliteErasePatch()),
-            ),
-            // Legacy Erase Patch removed in favor of ShaderMask cutout
             Positioned(
               top: 0,
               left: 0,
@@ -228,6 +218,7 @@ class _LandingPageState extends State<LandingPage> {
                     _ReferenceSatelliteScanLayer(scale: 0.72, isMobile: true))),
         SafeArea(
           child: SingleChildScrollView(
+            controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(22, 22, 22, 28),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,7 +267,15 @@ class _LandingPageState extends State<LandingPage> {
                 _AnimatedLandingButton(
                     label: "Explore Features",
                     icon: Icons.travel_explore_rounded,
-                    onTap: () {},
+                    onTap: () {
+                      if (_scrollController.hasClients) {
+                        _scrollController.animateTo(
+                          _scrollController.position.maxScrollExtent,
+                          duration: const Duration(milliseconds: 600),
+                          curve: Curves.easeOutCubic,
+                        );
+                      }
+                    },
                     primary: false,
                     fullWidth: true),
                 const SizedBox(height: 24),
@@ -664,22 +663,6 @@ class _AIPillPulseState extends State<_AIPillPulse>
   }
 }
 
-class _SatelliteErasePatch extends StatelessWidget {
-  const _SatelliteErasePatch();
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipOval(
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 18.0, sigmaY: 18.0),
-        child: Container(
-          color: const Color(0xFF020914).withOpacity(0.55),
-        ),
-      ),
-    );
-  }
-}
-
 class _ReferenceSatelliteScanLayer extends StatefulWidget {
   final double scale;
   final bool isMobile;
@@ -744,15 +727,6 @@ class _ReferenceSatelliteScanLayerState
                 baseTop + math.cos(t * 0.85) * 4 * widget.scale,
                 10,
                 constraints.maxHeight - satelliteHeight - 18);
-            final satelliteCenter = Offset(
-              satelliteLeft + satelliteWidth * 0.324,
-              satelliteTop + satelliteHeight * 0.606,
-            );
-            final beamSize = widget.isMobile
-                ? Size(104 * widget.scale, 158 * widget.scale)
-                : Size(142 * widget.scale, 208 * widget.scale);
-            final ringSize = (widget.isMobile ? 70 : 88) * widget.scale;
-
             return Stack(
               clipBehavior: Clip.none,
               children: [
@@ -762,19 +736,11 @@ class _ReferenceSatelliteScanLayerState
                   top: satelliteTop,
                   width: satelliteWidth,
                   height: satelliteHeight,
-                  child: ColorFiltered(
-                    colorFilter: const ColorFilter.matrix(<double>[
-                      1, 0, 0, 0, 0,
-                      0, 1, 0, 0, 0,
-                      0, 0, 1, 0, 0,
-                      1.5, 1.5, 1.5, 0, -1, // Programmatically removes black background
-                    ]),
-                    child: Image.asset(kSatelliteCutoutImg,
-                        fit: BoxFit.contain,
-                        filterQuality: FilterQuality.high,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const SizedBox.shrink()),
-                  ),
+                  child: Image.asset(kSatelliteCutoutImg,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const SizedBox.shrink()),
                 ),
                 // Green pulse rings and center dot removed per user request
               ],
@@ -784,80 +750,6 @@ class _ReferenceSatelliteScanLayerState
       },
     );
   }
-}
-
-class _ScanningConePainter extends CustomPainter {
-  final double progress;
-
-  const _ScanningConePainter({required this.progress});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final sweepY = size.height * progress;
-    final path = ui.Path()
-      ..moveTo(size.width * 0.5, 0)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    final paint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          const Color(0xFF58FF42).withOpacity(0.58),
-          const Color(0xFF32FF22).withOpacity(0.18),
-          Colors.transparent,
-        ],
-      ).createShader(Offset.zero & size);
-
-    canvas.drawPath(path, paint);
-    canvas.drawPath(
-        path,
-        Paint()
-          ..color = const Color(0xFF39FF14).withOpacity(0.24)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2);
-    canvas.save();
-    canvas.clipPath(path);
-    canvas.drawRect(
-        Rect.fromLTWH(0, sweepY - 9, size.width, 18),
-        Paint()
-          ..shader = LinearGradient(colors: [
-            Colors.transparent,
-            const Color(0xFFAAFF8D).withOpacity(0.9),
-            Colors.transparent
-          ]).createShader(Rect.fromLTWH(0, sweepY - 9, size.width, 18)));
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _ScanningConePainter oldDelegate) =>
-      oldDelegate.progress != progress;
-}
-
-class _PulseRingPainter extends CustomPainter {
-  final double progress;
-
-  const _PulseRingPainter({required this.progress});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final radius = size.shortestSide * (0.12 + progress * 0.48);
-    final alpha = (1 - progress).clamp(0.0, 1.0);
-    canvas.drawCircle(
-        center,
-        radius,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.6
-          ..color = const Color(0xFF39FF14).withOpacity(alpha * 0.65));
-  }
-
-  @override
-  bool shouldRepaint(covariant _PulseRingPainter oldDelegate) =>
-      oldDelegate.progress != progress;
 }
 
 class _DashboardGridBackdrop extends StatelessWidget {
@@ -1819,14 +1711,14 @@ class _DashboardScreenState extends State<DashboardScreen>
       {Color? color, VoidCallback? tap}) {
     return ListTile(
       leading:
-          Icon(i, color: act ? Colors.cyanAccent : (color ?? Colors.white54)),
+          Icon(i, color: act ? Color(0xFF39FF14) : (color ?? Colors.white54)),
       title: Text(label,
           style: TextStyle(
-              color: act ? Colors.cyanAccent : (color ?? Colors.white54),
+              color: act ? Color(0xFF39FF14) : (color ?? Colors.white54),
               fontWeight: act ? FontWeight.bold : FontWeight.normal)),
       onTap: tap,
       selected: act,
-      selectedTileColor: Colors.cyanAccent.withOpacity(0.1),
+      selectedTileColor: Color(0xFF39FF14).withOpacity(0.1),
     );
   }
 
@@ -1868,12 +1760,12 @@ class _DashboardScreenState extends State<DashboardScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                  color: Colors.cyanAccent.withOpacity(0.12),
+                  color: Color(0xFF39FF14).withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
                   border:
-                      Border.all(color: Colors.cyanAccent.withOpacity(0.35))),
+                      Border.all(color: Color(0xFF39FF14).withOpacity(0.35))),
               child: const Icon(Icons.description_outlined,
-                  color: Colors.cyanAccent),
+                  color: Color(0xFF39FF14)),
             ),
             const SizedBox(width: 14),
             const Expanded(
@@ -1977,14 +1869,14 @@ class _DashboardScreenState extends State<DashboardScreen>
           decoration: BoxDecoration(
               color: const Color(0xFF0F172A),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.cyanAccent.withOpacity(0.2))),
+              border: Border.all(color: Color(0xFF39FF14).withOpacity(0.2))),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 const Text("Blockchain Audit Log",
                     style: TextStyle(
-                        color: Colors.cyanAccent,
+                        color: Color(0xFF39FF14),
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                         letterSpacing: 1)),
@@ -2059,7 +1951,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, color: Colors.cyanAccent, size: 18),
+          Icon(icon, color: Color(0xFF39FF14), size: 18),
           const SizedBox(width: 10),
           Expanded(
               child: Column(
@@ -2515,7 +2407,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 width: 18,
                                 height: 18,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.cyanAccent))
+                                    strokeWidth: 2, color: Color(0xFF39FF14)))
                             : const Icon(Icons.search,
                                 color: Colors.white, size: 20),
                         onPressed: _scanning ? null : _runScan)
@@ -2558,7 +2450,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                           color: _isSatellite
-                              ? Colors.cyanAccent.withOpacity(0.5)
+                              ? Color(0xFF39FF14).withOpacity(0.5)
                               : Colors.white24),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -2567,13 +2459,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                               ? Icons.layers_rounded
                               : Icons.map_outlined,
                           color:
-                              _isSatellite ? Colors.cyanAccent : Colors.white,
+                              _isSatellite ? Color(0xFF39FF14) : Colors.white,
                           size: 18),
                       const SizedBox(width: 6),
                       Text(_isSatellite ? "Satellite" : "Street",
                           style: TextStyle(
                               color: _isSatellite
-                                  ? Colors.cyanAccent
+                                  ? Color(0xFF39FF14)
                                   : Colors.white,
                               fontSize: 11,
                               fontWeight: FontWeight.bold)),
@@ -2780,11 +2672,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                 child: Container(
                     decoration: BoxDecoration(
                         border: Border.all(
-                            color: Colors.cyanAccent.withOpacity(0.3),
+                            color: Color(0xFF39FF14).withOpacity(0.3),
                             width: isMobile ? 10 : 40)),
                     child: const Center(
                         child: Icon(Icons.center_focus_strong,
-                            color: Colors.cyanAccent, size: 100)))),
+                            color: Color(0xFF39FF14), size: 100)))),
         ]));
   }
 
@@ -2804,7 +2696,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 style: TextStyle(
                     color: _status.contains("ERROR")
                         ? Colors.redAccent
-                        : (_ready ? Colors.greenAccent : Colors.cyanAccent),
+                        : (_ready ? Colors.greenAccent : Color(0xFF39FF14)),
                     fontSize: 12,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
@@ -2815,7 +2707,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.bold)),
-                Icon(Icons.flash_on, color: Colors.cyanAccent, size: 16)
+                Icon(Icons.flash_on, color: Color(0xFF39FF14), size: 16)
               ]),
               const SizedBox(height: 10),
               _actionBtn(
@@ -2830,10 +2722,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.cyanAccent.withOpacity(0.05),
+                    color: Color(0xFF39FF14).withOpacity(0.05),
                     borderRadius: BorderRadius.circular(8),
                     border:
-                        Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
+                        Border.all(color: Color(0xFF39FF14).withOpacity(0.3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -2852,7 +2744,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         const SizedBox(width: 8),
                         const Text("LIVE TELEMETRY",
                             style: TextStyle(
-                                color: Colors.cyanAccent,
+                                color: Color(0xFF39FF14),
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 1.5)),
@@ -2872,7 +2764,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 "📡",
                                 "Alt",
                                 "${(_droneTelemetry['altitude'] as double).toStringAsFixed(1)}m",
-                                Colors.cyanAccent),
+                                Color(0xFF39FF14)),
                             _telemetryItem(
                                 "💨",
                                 "Speed",
@@ -2903,7 +2795,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                             width: 28,
                             height: 28,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.cyanAccent)),
+                                strokeWidth: 2, color: Color(0xFF39FF14))),
                       if (_scanning) const SizedBox(height: 16),
                       Text(
                         _scanning
@@ -2935,7 +2827,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       delay: 100.ms)
                   .slideY(begin: 0.2, end: 0),
               _stat("Detection Confidence", "${_accuracy.toStringAsFixed(1)}%",
-                      Colors.cyanAccent)
+                      Color(0xFF39FF14))
                   .animate()
                   .fadeIn(
                       duration: 600.ms,
@@ -3105,7 +2997,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           borderRadius: BorderRadius.circular(8)),
                       child: Row(children: [
                         const Icon(Icons.image,
-                            color: Colors.cyanAccent, size: 16),
+                            color: Color(0xFF39FF14), size: 16),
                         const SizedBox(width: 10),
                         Expanded(
                             child: Column(
@@ -3272,10 +3164,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                  color: Colors.cyanAccent.withOpacity(0.1),
+                                  color: Color(0xFF39FF14).withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8)),
                               child: const Icon(Icons.flight,
-                                  color: Colors.cyanAccent, size: 24),
+                                  color: Color(0xFF39FF14), size: 24),
                             ),
                             const SizedBox(width: 15),
                             const Expanded(
@@ -3313,17 +3205,17 @@ class _DashboardScreenState extends State<DashboardScreen>
                               child: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                                color: Colors.cyanAccent.withOpacity(0.1),
+                                color: Color(0xFF39FF14).withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                    color: Colors.cyanAccent.withOpacity(0.5))),
+                                    color: Color(0xFF39FF14).withOpacity(0.5))),
                             child: const Column(children: [
                               Icon(Icons.webhook,
-                                  color: Colors.cyanAccent, size: 20),
+                                  color: Color(0xFF39FF14), size: 20),
                               SizedBox(height: 5),
                               Text("MAVLink",
                                   style: TextStyle(
-                                      color: Colors.cyanAccent,
+                                      color: Color(0xFF39FF14),
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold)),
                               Text("UDP/TCP",
@@ -3373,7 +3265,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                             hintText: "192.168.1.100:14550",
                             hintStyle: const TextStyle(color: Colors.white30),
                             prefixIcon: const Icon(Icons.router,
-                                color: Colors.cyanAccent, size: 18),
+                                color: Color(0xFF39FF14), size: 18),
                             filled: true,
                             fillColor: Colors.white.withOpacity(0.05),
                             border: OutlineInputBorder(
@@ -3546,7 +3438,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 1)),
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.cyanAccent,
+                                backgroundColor: Color(0xFF39FF14),
                                 foregroundColor: Colors.black,
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8))),
@@ -4183,7 +4075,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                       backgroundColor: Colors.white10),
                                   child: Text(_isHindi ? "A" : "अ",
                                       style: const TextStyle(
-                                          color: Colors.cyanAccent,
+                                          color: Color(0xFF39FF14),
                                           fontWeight: FontWeight.bold))),
                               const SizedBox(width: 10),
                               IconButton(
@@ -4265,7 +4157,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                               style: const TextStyle(color: Colors.white70)),
                                                                           TextSpan(
                                                                               text: _t("Browse", "ब्राउज़ करें"),
-                                                                              style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
+                                                                              style: const TextStyle(color: Color(0xFF39FF14), fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
                                                                         ])),
                                                                   ),
                                                                 ],
@@ -4316,7 +4208,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                           height:
                                                                               15,
                                                                           decoration: const BoxDecoration(
-                                                                              color: Colors.cyanAccent,
+                                                                              color: Color(0xFF39FF14),
                                                                               shape: BoxShape.circle))),
                                                                 ),
                                                               ),
@@ -4380,7 +4272,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                           .withOpacity(
                                                                               0.02),
                                                                       border: Border.all(
-                                                                          color: Colors.cyanAccent.withOpacity(
+                                                                          color: Color(0xFF39FF14).withOpacity(
                                                                               0.5),
                                                                           width:
                                                                               1,
@@ -4400,7 +4292,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                             size:
                                                                                 40,
                                                                             color:
-                                                                                Colors.cyanAccent.withOpacity(0.7)),
+                                                                                Color(0xFF39FF14).withOpacity(0.7)),
                                                                         const SizedBox(
                                                                             height:
                                                                                 10),
@@ -4411,7 +4303,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                               textAlign: TextAlign.center,
                                                                               text: TextSpan(children: [
                                                                                 TextSpan(text: _t("Drag & Drop Photos or PDF Reports Here or ", "फोटो या पीडीएफ रिपोर्ट यहां खींचें या "), style: const TextStyle(color: Colors.white70)),
-                                                                                TextSpan(text: _t("Browse", "ब्राउज़ करें"), style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
+                                                                                TextSpan(text: _t("Browse", "ब्राउज़ करें"), style: const TextStyle(color: Color(0xFF39FF14), fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
                                                                               ])),
                                                                         ),
                                                                         const SizedBox(
@@ -5224,7 +5116,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 padding: const EdgeInsets.all(15),
                 child: Row(
                   children: [
-                    const Icon(Icons.auto_awesome, color: Colors.cyanAccent),
+                    const Icon(Icons.auto_awesome, color: Color(0xFF39FF14)),
                     const SizedBox(width: 10),
                     const Text("Gravity Assistant",
                         style: TextStyle(
@@ -5255,12 +5147,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                         decoration: BoxDecoration(
                             color: isAi
                                 ? const Color(0xFF1E293B)
-                                : Colors.cyanAccent.withOpacity(0.2),
+                                : Color(0xFF39FF14).withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                                 color: isAi
                                     ? Colors.white10
-                                    : Colors.cyanAccent.withOpacity(0.5))),
+                                    : Color(0xFF39FF14).withOpacity(0.5))),
                         child: Text(msg['text']!,
                             style: const TextStyle(color: Colors.white)),
                       ),
@@ -5276,7 +5168,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     IconButton(
                         icon: Icon(Icons.image_search,
                             color: _pendingImageBase64 != null
-                                ? Colors.cyanAccent
+                                ? Color(0xFF39FF14)
                                 : Colors.white54,
                             size: 20),
                         onPressed: () async {
@@ -5322,7 +5214,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                               : "Ask Gravity AI...",
                           hintStyle: TextStyle(
                               color: _pendingImageName != null
-                                  ? Colors.cyanAccent.withOpacity(0.5)
+                                  ? Color(0xFF39FF14).withOpacity(0.5)
                                   : Colors.white30),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 15, vertical: 10),
@@ -5343,7 +5235,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       decoration: BoxDecoration(
                         color: _isListening
                             ? Colors.redAccent.withOpacity(0.2)
-                            : Colors.cyanAccent.withOpacity(0.1),
+                            : Color(0xFF39FF14).withOpacity(0.1),
                         shape: BoxShape.circle,
                         border: _isListening
                             ? Border.all(color: Colors.redAccent, width: 2)
@@ -5354,7 +5246,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           _isListening ? Icons.mic_off : Icons.mic,
                           color: _isListening
                               ? Colors.redAccent
-                              : Colors.cyanAccent,
+                              : Color(0xFF39FF14),
                           size: 18,
                         ),
                         onPressed: _isListening
@@ -5366,7 +5258,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     ),
                     const SizedBox(width: 5),
                     IconButton(
-                        icon: const Icon(Icons.send, color: Colors.cyanAccent),
+                        icon: const Icon(Icons.send, color: Color(0xFF39FF14)),
                         onPressed: () {
                           String val = _chatCtrl.text;
                           if (val.trim().isEmpty) return;
