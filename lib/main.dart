@@ -16,6 +16,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'core/theme.dart';
 import 'core/web_bridge.dart';
+import 'features_page.dart';
 
 // ========================================================
 // GLOBAL CONFIG
@@ -83,15 +84,27 @@ class _LandingPageState extends State<LandingPage> {
         ));
   }
 
-  void _scrollToFeatures(double pageWidth) {
-    if (!_scrollController.hasClients) return;
-    final target = (pageWidth / _referenceAspect) * 0.56;
-    final maxOffset = _scrollController.position.maxScrollExtent;
-    _scrollController.animateTo(
-      math.min(target, maxOffset),
-      duration: const Duration(milliseconds: 700),
-      curve: Curves.easeOutCubic,
-    );
+  void _openFeaturesPage() {
+    Navigator.push(
+        context,
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 620),
+          reverseTransitionDuration: const Duration(milliseconds: 360),
+          pageBuilder: (_, animation, __) => const FeaturesPage(),
+          transitionsBuilder: (_, animation, __, child) {
+            final curved =
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+            return FadeTransition(
+              opacity: curved,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                        begin: const Offset(0.03, 0.02), end: Offset.zero)
+                    .animate(curved),
+                child: child,
+              ),
+            );
+          },
+        ));
   }
 
   @override
@@ -163,7 +176,7 @@ class _LandingPageState extends State<LandingPage> {
               child: _LandingHotspot(
                 key: const ValueKey('landing-explore-features'),
                 tooltip: "Explore Features",
-                onTap: () => _scrollToFeatures(pageWidth),
+                onTap: _openFeaturesPage,
               ),
             ),
             Positioned(
@@ -267,15 +280,7 @@ class _LandingPageState extends State<LandingPage> {
                 _AnimatedLandingButton(
                     label: "Explore Features",
                     icon: Icons.travel_explore_rounded,
-                    onTap: () {
-                      if (_scrollController.hasClients) {
-                        _scrollController.animateTo(
-                          _scrollController.position.maxScrollExtent,
-                          duration: const Duration(milliseconds: 600),
-                          curve: Curves.easeOutCubic,
-                        );
-                      }
-                    },
+                    onTap: _openFeaturesPage,
                     primary: false,
                     fullWidth: true),
                 const SizedBox(height: 24),
