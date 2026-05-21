@@ -21,16 +21,24 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Gravity AI Backend")
 
-# Add CORS middleware
+def _allowed_origins() -> list:
+    origins = os.getenv("ALLOWED_ORIGINS", "*")
+    return [origin.strip() for origin in origins.split(",") if origin.strip()]
+
+
+ALLOWED_ORIGINS = _allowed_origins()
+
+# Add CORS middleware. Use ALLOWED_ORIGINS for production domains.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=ALLOWED_ORIGINS != ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-GROQ_KEY = os.getenv("GROQ_API_KEY", "your_fallback_key")
+GROQ_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 @app.get("/")
 async def root():
@@ -48,6 +56,24 @@ class ForestScanRequest(BaseModel):
     sector: Optional[str] = None
     current_layer: Optional[str] = "LULC250K_2425"
     previous_layer: Optional[str] = "LULC250K_2324"
+
+
+class ChatRequest(BaseModel):
+    message: str
+
+
+class VisionRequest(BaseModel):
+    image_base64: str
+    image_name: str
+    mime_type: Optional[str] = "image/jpeg"
+
+
+def _require_groq_key():
+    if not GROQ_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="GROQ_API_KEY is not configured on the backend",
+        )
 
 
 # ========================================================
@@ -417,6 +443,104 @@ async def forest_scan(request: ForestScanRequest):
         "alerts": alerts,
         "errors": errors,
     }
+
+
+@app.post("/api/chat")
+async def chat(request: ChatRequest):
+    _require_groq_key()
+    try:
+        res = req.post(
+            GROQ_CHAT_URL,
+            headers={
+                "Authorization": f"Bearer {GROQ_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are Gravity AI, a geospatial intelligence assistant "
+                            "for ISRO Bhuvan platform. Help users with encroachment "
+                            "detection, land mapping, and administrative tasks. Be "
+                            "professional, concise, and futuristic."
+                        ),
+                    },
+                    {"role": "user", "content": request.message},
+                ],
+            },
+            timeout=30,
+        )
+        if res.status_code != 200:
+            logger.warning(f"Groq chat failed: {res.status_code} {res.text[:300]}")
+            raise HTTPException(status_code=502, detail="Groq chat request failed")
+        data = res.json()
+        return {"status": "success", "message": data["choices"][0]["message"]["content"]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/vision")
+async def vision(request: VisionRequest):
+    _require_groq_key()
+    try:
+        res = req.post(
+            GROQ_CHAT_URL,
+            headers={
+                "Authorization": f"Bearer {GROQ_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are Gravity AI, a geospatial intelligence assistant. "
+                            "Analyze images for unauthorized construction, encroachment, "
+                            "land-use anomalies, vegetation loss, and building patterns."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": (
+                                    "Analyze this image for encroachment detection and "
+                                    "land-use anomalies. Provide a detailed assessment."
+                                ),
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": (
+                                        f"data:{request.mime_type};base64,"
+                                        f"{request.image_base64}"
+                                    )
+                                },
+                            },
+                        ],
+                    },
+                ],
+                "max_tokens": 1024,
+            },
+            timeout=30,
+        )
+        if res.status_code != 200:
+            logger.warning(f"Groq vision failed: {res.status_code} {res.text[:300]}")
+            raise HTTPException(status_code=502, detail="Groq vision request failed")
+        data = res.json()
+        return {"status": "success", "message": data["choices"][0]["message"]["content"]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Vision error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/scan")

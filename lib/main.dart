@@ -22,10 +22,10 @@ import 'features_page.dart';
 // GLOBAL CONFIG
 // ========================================================
 const String kBackendUrl = "https://gravityai-backend.onrender.com";
+const bool kAllowLocalBackendFallback =
+    bool.fromEnvironment('ALLOW_LOCAL_BACKEND_FALLBACK', defaultValue: false);
 const String kEarthImg = "assets/images/background.png";
 const String kLandingReferenceImg = "assets/images/landing_reference.png";
-const String kGroqKey =
-    String.fromEnvironment('GROQ_API_KEY', defaultValue: '');
 
 class BhuPrahariStore {
   static final ValueNotifier<List<Map<String, dynamic>>> complaints =
@@ -254,7 +254,7 @@ class _LandingPageState extends State<LandingPage> {
                 center: const Alignment(0.66, -0.66),
                 radius: 1.28,
                 colors: [
-                  const Color(0xFF113427).withOpacity(0.96),
+                  const Color(0xFF113427).withValues(alpha: 0.96),
                   const Color(0xFF071524),
                   const Color(0xFF020914),
                 ],
@@ -270,8 +270,8 @@ class _LandingPageState extends State<LandingPage> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.35),
-                  const Color(0xFF020914).withOpacity(0.94)
+                  Colors.black.withValues(alpha: 0.35),
+                  const Color(0xFF020914).withValues(alpha: 0.94)
                 ],
               ),
             ),
@@ -292,14 +292,18 @@ class _LandingPageState extends State<LandingPage> {
                             const Icon(Icons.satellite_alt_rounded,
                                 color: Color(0xFF4CFF2F), size: 38)),
                     const SizedBox(width: 10),
-                    const Text("GravityAI",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 29,
-                            fontWeight: FontWeight.w800)),
+                    const Expanded(
+                      child: Text("GravityAI",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 29,
+                              fontWeight: FontWeight.w800)),
+                    ),
                     const Spacer(),
                     SizedBox(
-                      width: 136,
+                      width: 116,
                       child: _AnimatedLandingButton(
                           key: const ValueKey('landing-public-access-mobile'),
                           label: "Public",
@@ -369,9 +373,9 @@ class _LandingPageState extends State<LandingPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF0B1B2A).withOpacity(0.88),
+        color: const Color(0xFF0B1B2A).withValues(alpha: 0.88),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.13)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.13)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -438,8 +442,8 @@ class _LandingHotspotState extends State<_LandingHotspot>
             child: InkWell(
               onTap: widget.onTap,
               borderRadius: BorderRadius.circular(8),
-              splashColor: accent.withOpacity(0.18),
-              highlightColor: accent.withOpacity(0.08),
+              splashColor: accent.withValues(alpha: 0.18),
+              highlightColor: accent.withValues(alpha: 0.08),
               child: AnimatedBuilder(
                 animation: _controller,
                 builder: (context, child) {
@@ -451,11 +455,13 @@ class _LandingHotspotState extends State<_LandingHotspot>
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                           color: _hovering
-                              ? accent.withOpacity(0.95)
-                              : accent.withOpacity(primary ? 0.18 : 0.10)),
+                              ? accent.withValues(alpha: 0.95)
+                              : accent.withValues(
+                                  alpha: primary ? 0.18 : 0.10)),
                       boxShadow: [
                         BoxShadow(
-                            color: accent.withOpacity(_hovering ? 0.32 : 0.12),
+                            color: accent.withValues(
+                                alpha: _hovering ? 0.32 : 0.12),
                             blurRadius: _hovering ? 30 : 18,
                             spreadRadius: _hovering ? 1 : 0),
                       ],
@@ -477,8 +483,8 @@ class _LandingHotspotState extends State<_LandingHotspot>
                                   ],
                                   colors: [
                                     Colors.transparent,
-                                    Colors.white
-                                        .withOpacity(_hovering ? 0.24 : 0.13),
+                                    Colors.white.withValues(
+                                        alpha: _hovering ? 0.24 : 0.13),
                                     Colors.transparent,
                                   ],
                                 ),
@@ -569,51 +575,47 @@ class _AnimatedLandingButtonState extends State<_AnimatedLandingButton>
                           end: Alignment.bottomRight)
                       : LinearGradient(
                           colors: [
-                            const Color(0xFF071625).withOpacity(0.85),
-                            const Color(0xFF0D2437).withOpacity(0.85)
+                            const Color(0xFF071625).withValues(alpha: 0.85),
+                            const Color(0xFF0D2437).withValues(alpha: 0.85)
                           ],
                         ),
                   border: Border.all(
                       color: widget.primary
-                          ? Colors.white.withOpacity(0.18)
-                          : accent.withOpacity(0.32)),
+                          ? Colors.white.withValues(alpha: 0.18)
+                          : accent.withValues(alpha: 0.32)),
                   boxShadow: [
                     BoxShadow(
-                        color: accent.withOpacity(_hovering ? 0.35 : glow),
+                        color:
+                            accent.withValues(alpha: _hovering ? 0.35 : glow),
                         blurRadius: _hovering ? 28 : 18,
                         offset: const Offset(0, 10)),
                   ],
                 ),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Align(
-                        alignment: Alignment.center,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(widget.label,
-                                style: TextStyle(
-                                    color: widget.primary
-                                        ? Colors.black
-                                        : Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800)),
-                            const SizedBox(width: 12),
-                            Transform.translate(
-                              offset: Offset(
-                                  math.sin(_controller.value * math.pi * 2) * 4,
-                                  0),
-                              child: Icon(widget.icon,
-                                  color: widget.primary
-                                      ? Colors.black
-                                      : const Color(0xFF39FF14)),
-                            ),
-                          ],
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(widget.label,
+                            style: TextStyle(
+                                color: widget.primary
+                                    ? Colors.black
+                                    : Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800)),
+                        const SizedBox(width: 12),
+                        Transform.translate(
+                          offset: Offset(
+                              math.sin(_controller.value * math.pi * 2) * 4, 0),
+                          child: Icon(widget.icon,
+                              color: widget.primary
+                                  ? Colors.black
+                                  : const Color(0xFF39FF14)),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             );
@@ -662,7 +664,7 @@ class _BlinkingAIDotState extends State<_BlinkingAIDot>
                 const Color(0xFF128A17), const Color(0xFF39FF14), value),
             boxShadow: [
               BoxShadow(
-                  color: const Color(0xFF39FF14).withOpacity(value),
+                  color: const Color(0xFF39FF14).withValues(alpha: value),
                   blurRadius: 10 + 12 * value,
                   spreadRadius: 1 + 3 * value),
             ],
@@ -708,12 +710,13 @@ class _AIPillPulseState extends State<_AIPillPulse>
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-                color: const Color(0xFF39FF14).withOpacity(0.10 + value * 0.22),
+                color: const Color(0xFF39FF14)
+                    .withValues(alpha: 0.10 + value * 0.22),
                 width: 1.0),
             boxShadow: [
               BoxShadow(
-                  color:
-                      const Color(0xFF39FF14).withOpacity(0.04 + value * 0.18),
+                  color: const Color(0xFF39FF14)
+                      .withValues(alpha: 0.04 + value * 0.18),
                   blurRadius: 12 + value * 18,
                   spreadRadius: value * 3),
             ],
@@ -737,7 +740,7 @@ class _DashboardGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF39FF14).withOpacity(0.035)
+      ..color = const Color(0xFF39FF14).withValues(alpha: 0.035)
       ..strokeWidth = 0.7;
     const gap = 42.0;
     for (double x = 0; x < size.width; x += gap) {
@@ -748,7 +751,7 @@ class _DashboardGridPainter extends CustomPainter {
     }
     final sweep = Paint()
       ..shader = RadialGradient(colors: [
-        const Color(0xFF39FF14).withOpacity(0.13),
+        const Color(0xFF39FF14).withValues(alpha: 0.13),
         Colors.transparent
       ]).createShader(Rect.fromCircle(
           center: Offset(size.width * 0.74, size.height * 0.22),
@@ -771,9 +774,10 @@ class _BootChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: const Color(0xFF39FF14).withOpacity(0.08),
+        color: const Color(0xFF39FF14).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF39FF14).withOpacity(0.28)),
+        border:
+            Border.all(color: const Color(0xFF39FF14).withValues(alpha: 0.28)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -804,9 +808,9 @@ class _MobileFeature extends StatelessWidget {
       width: 150,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF071625).withOpacity(0.82),
+        color: const Color(0xFF071625).withValues(alpha: 0.82),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.12)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Row(
         children: [
@@ -835,9 +839,9 @@ class _ForestLegendDot extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF0B1221).withOpacity(0.82),
+        color: const Color(0xFF0B1221).withValues(alpha: 0.82),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withOpacity(0.35)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -910,7 +914,7 @@ class _LoginPageState extends State<LoginPage> {
                         : const Alignment(0.52, -0.62),
                     radius: 1.15,
                     colors: [
-                      const Color(0xFF0F2E2D).withOpacity(0.92),
+                      const Color(0xFF0F2E2D).withValues(alpha: 0.92),
                       const Color(0xFF071321),
                       const Color(0xFF020914),
                     ],
@@ -926,8 +930,8 @@ class _LoginPageState extends State<LoginPage> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withOpacity(0.32),
-                      const Color(0xFF020914).withOpacity(0.94),
+                      Colors.black.withValues(alpha: 0.32),
+                      const Color(0xFF020914).withValues(alpha: 0.94),
                     ],
                   ),
                 ),
@@ -970,8 +974,9 @@ class _LoginPageState extends State<LoginPage> {
                     icon: const Icon(Icons.arrow_back_rounded,
                         color: Colors.white),
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.black.withOpacity(0.28),
-                      side: BorderSide(color: Colors.white.withOpacity(0.12)),
+                      backgroundColor: Colors.black.withValues(alpha: 0.28),
+                      side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.12)),
                     ),
                   ),
                 ),
@@ -1042,13 +1047,13 @@ class _LoginPageState extends State<LoginPage> {
           width: double.infinity,
           padding: EdgeInsets.all(isMobile ? 20 : 26),
           decoration: BoxDecoration(
-            color: const Color(0xFF06111F).withOpacity(0.90),
+            color: const Color(0xFF06111F).withValues(alpha: 0.90),
             borderRadius: BorderRadius.circular(8),
-            border:
-                Border.all(color: const Color(0xFF39FF14).withOpacity(0.35)),
+            border: Border.all(
+                color: const Color(0xFF39FF14).withValues(alpha: 0.35)),
             boxShadow: [
               BoxShadow(
-                  color: const Color(0xFF39FF14).withOpacity(0.16),
+                  color: const Color(0xFF39FF14).withValues(alpha: 0.16),
                   blurRadius: 36,
                   offset: const Offset(0, 20)),
             ],
@@ -1152,8 +1157,8 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   LatLng _loc = const LatLng(23.2599, 77.4126);
   double _currentZoom = 13.0;
-  List<Polygon> _anomalyPolygons = [];
-  List<Polygon> _govtPolygons = [];
+  final List<Polygon> _anomalyPolygons = [];
+  final List<Polygon> _govtPolygons = [];
 
   int _risk = 0, _area = 0, _veg = 0;
   double _val = 0.0, _fine = 0.0, _accuracy = 100.0;
@@ -1169,7 +1174,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   Timer? _timer;
   bool _canDemolish = false;
   String _stateName = "MADHYA PRADESH";
-  List<Map<String, String>> _tasksList = [];
+  final List<Map<String, String>> _tasksList = [];
   final TextEditingController _citizenNameCtrl = TextEditingController();
   final TextEditingController _citizenPhoneCtrl = TextEditingController();
   final TextEditingController _citizenComplaintCtrl = TextEditingController();
@@ -1215,7 +1220,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   List<String> _forestAlerts = [];
 
   // Geotagged Evidence State
-  List<Map<String, dynamic>> _fieldEvidences = [];
+  final List<Map<String, dynamic>> _fieldEvidences = [];
   bool _droneActive = false;
   LatLng? _dronePos;
   Timer? _droneTimer;
@@ -1296,7 +1301,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (_isListening) return;
 
     try {
-      final jsCode = '''
+      const jsCode = '''
         (function() {
           var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
           if (!SpeechRecognition) {
@@ -1469,8 +1474,9 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (mounted) setState(() => _stateName = fetchedState);
       _mapCtrl.move(_loc, 18.0);
 
-      if (mounted)
+      if (mounted) {
         setState(() => _status = "CROSS-REFERENCING GEOJSON AND BHU-NAKSHA...");
+      }
 
       final apiRes = await http
           .post(Uri.parse('$kBackendUrl/api/scan'),
@@ -1481,7 +1487,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (apiRes.statusCode == 200) {
         final data = json.decode(apiRes.body);
 
-        List<LatLng> _parsePoly(dynamic list) {
+        List<LatLng> parsePoly(dynamic list) {
           if (list == null) return [];
           return (list as List)
               .map((p) => LatLng(double.parse(p['lat'].toString()),
@@ -1514,8 +1520,8 @@ class _DashboardScreenState extends State<DashboardScreen>
           // Government Boundary — Blue
           if (data['govt_boundary'] != null) {
             _govtPolygons.add(Polygon(
-                points: _parsePoly(data['govt_boundary']),
-                color: Colors.blue.withOpacity(0.12),
+                points: parsePoly(data['govt_boundary']),
+                color: Colors.blue.withValues(alpha: 0.12),
                 borderColor: Colors.blueAccent,
                 borderStrokeWidth: 4,
                 isFilled: true));
@@ -1524,11 +1530,11 @@ class _DashboardScreenState extends State<DashboardScreen>
           // Encroaching Buildings (on Govt land) — RED
           if (data['encroaching_buildings'] != null) {
             for (var building in data['encroaching_buildings']) {
-              var pts = _parsePoly(building);
+              var pts = parsePoly(building);
               if (pts.length >= 3) {
                 _anomalyPolygons.add(Polygon(
                     points: pts,
-                    color: Colors.red.withOpacity(0.5),
+                    color: Colors.red.withValues(alpha: 0.5),
                     borderColor: Colors.redAccent,
                     borderStrokeWidth: 2,
                     isFilled: true));
@@ -1539,11 +1545,11 @@ class _DashboardScreenState extends State<DashboardScreen>
           // Legal Buildings (outside Govt land) — GREEN
           if (data['legal_buildings'] != null) {
             for (var building in data['legal_buildings']) {
-              var pts = _parsePoly(building);
+              var pts = parsePoly(building);
               if (pts.length >= 3) {
                 _govtPolygons.add(Polygon(
                     points: pts,
-                    color: Colors.green.withOpacity(0.2),
+                    color: Colors.green.withValues(alpha: 0.2),
                     borderColor: Colors.greenAccent,
                     borderStrokeWidth: 1,
                     isFilled: true));
@@ -1555,8 +1561,8 @@ class _DashboardScreenState extends State<DashboardScreen>
           if (data['anomaly_polygon'] != null &&
               data['encroaching_buildings'] == null) {
             _anomalyPolygons.add(Polygon(
-                points: _parsePoly(data['anomaly_polygon']),
-                color: Colors.red.withOpacity(0.4),
+                points: parsePoly(data['anomaly_polygon']),
+                color: Colors.red.withValues(alpha: 0.4),
                 borderColor: Colors.redAccent,
                 borderStrokeWidth: 3,
                 isFilled: true));
@@ -1615,7 +1621,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             LatLng(center.latitude + delta, center.longitude + delta),
             LatLng(center.latitude + delta, center.longitude - delta),
           ],
-          color: Colors.blue.withOpacity(0.12),
+          color: Colors.blue.withValues(alpha: 0.12),
           borderColor: Colors.blueAccent,
           borderStrokeWidth: 3,
           isFilled: true));
@@ -1628,7 +1634,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             LatLng(center.latitude + inner, center.longitude + inner),
             LatLng(center.latitude + inner, center.longitude - inner),
           ],
-          color: Colors.red.withOpacity(0.42),
+          color: Colors.red.withValues(alpha: 0.42),
           borderColor: Colors.redAccent,
           borderStrokeWidth: 2,
           isFilled: true));
@@ -1693,11 +1699,13 @@ class _DashboardScreenState extends State<DashboardScreen>
         allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
       );
       if (result == null || result.files.isEmpty) return;
+      if (!mounted) return;
       setState(() => _citizenEvidenceName = result.files.first.name);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text("Evidence attached: ${result.files.first.name}"),
           backgroundColor: Colors.green));
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text("Upload error: $e"), backgroundColor: Colors.red));
     }
@@ -1723,7 +1731,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                     style: TextStyle(
                         color: Colors.black87, fontWeight: FontWeight.bold)),
               ).animate(onPlay: (c) => c.repeat()).shimmer(
-                duration: 3.seconds, color: Colors.white.withOpacity(0.45))
+                duration: 3.seconds,
+                color: Colors.white.withValues(alpha: 0.45))
             : null,
         body: Container(
           decoration: const BoxDecoration(
@@ -1819,15 +1828,15 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _drawerBtn(IconData i, String label, bool act,
       {Color? color, VoidCallback? tap}) {
     return ListTile(
-      leading:
-          Icon(i, color: act ? Color(0xFF39FF14) : (color ?? Colors.white54)),
+      leading: Icon(i,
+          color: act ? const Color(0xFF39FF14) : (color ?? Colors.white54)),
       title: Text(label,
           style: TextStyle(
-              color: act ? Color(0xFF39FF14) : (color ?? Colors.white54),
+              color: act ? const Color(0xFF39FF14) : (color ?? Colors.white54),
               fontWeight: act ? FontWeight.bold : FontWeight.normal)),
       onTap: tap,
       selected: act,
-      selectedTileColor: Color(0xFF39FF14).withOpacity(0.1),
+      selectedTileColor: const Color(0xFF39FF14).withValues(alpha: 0.1),
     );
   }
 
@@ -1869,10 +1878,10 @@ class _DashboardScreenState extends State<DashboardScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                  color: Color(0xFF39FF14).withOpacity(0.12),
+                  color: const Color(0xFF39FF14).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
-                  border:
-                      Border.all(color: Color(0xFF39FF14).withOpacity(0.35))),
+                  border: Border.all(
+                      color: const Color(0xFF39FF14).withValues(alpha: 0.35))),
               child: const Icon(Icons.description_outlined,
                   color: Color(0xFF39FF14)),
             ),
@@ -1978,7 +1987,8 @@ class _DashboardScreenState extends State<DashboardScreen>
           decoration: BoxDecoration(
               color: const Color(0xFF0F172A),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Color(0xFF39FF14).withOpacity(0.2))),
+              border: Border.all(
+                  color: const Color(0xFF39FF14).withValues(alpha: 0.2))),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1993,7 +2003,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                        color: Colors.greenAccent.withOpacity(0.1),
+                        color: Colors.greenAccent.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4)),
                     child: const Text("VERIFIED",
                         style: TextStyle(
@@ -2060,7 +2070,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, color: Color(0xFF39FF14), size: 18),
+          Icon(icon, color: const Color(0xFF39FF14), size: 18),
           const SizedBox(width: 10),
           Expanded(
               child: Column(
@@ -2101,10 +2111,10 @@ class _DashboardScreenState extends State<DashboardScreen>
             Container(
               padding: const EdgeInsets.all(13),
               decoration: BoxDecoration(
-                  color: Colors.greenAccent.withOpacity(0.10),
+                  color: Colors.greenAccent.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(10),
-                  border:
-                      Border.all(color: Colors.greenAccent.withOpacity(0.35))),
+                  border: Border.all(
+                      color: Colors.greenAccent.withValues(alpha: 0.35))),
               child: const Icon(Icons.forest_rounded,
                   color: Colors.greenAccent, size: 28),
             ),
@@ -2239,7 +2249,8 @@ class _DashboardScreenState extends State<DashboardScreen>
       decoration: BoxDecoration(
           color: const Color(0xFF06111F),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.greenAccent.withOpacity(0.22))),
+          border:
+              Border.all(color: Colors.greenAccent.withValues(alpha: 0.22))),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
@@ -2263,16 +2274,16 @@ class _DashboardScreenState extends State<DashboardScreen>
           if (!_forestReady)
             Positioned.fill(
               child: Container(
-                color: Colors.black.withOpacity(0.18),
+                color: Colors.black.withValues(alpha: 0.18),
                 child: Center(
                   child: Container(
                     width: isMobile ? 250 : 360,
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                        color: const Color(0xFF0B1221).withOpacity(0.88),
+                        color: const Color(0xFF0B1221).withValues(alpha: 0.88),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: Colors.greenAccent.withOpacity(0.25))),
+                            color: Colors.greenAccent.withValues(alpha: 0.25))),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -2304,10 +2315,10 @@ class _DashboardScreenState extends State<DashboardScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                  color: const Color(0xFF0B1221).withOpacity(0.88),
+                  color: const Color(0xFF0B1221).withValues(alpha: 0.88),
                   borderRadius: BorderRadius.circular(8),
-                  border:
-                      Border.all(color: Colors.greenAccent.withOpacity(0.3))),
+                  border: Border.all(
+                      color: Colors.greenAccent.withValues(alpha: 0.3))),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -2324,14 +2335,14 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ),
           ),
-          Positioned(
+          const Positioned(
             left: 14,
             bottom: 14,
             right: 14,
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: const [
+              children: [
                 _ForestLegendDot(
                     color: Colors.greenAccent, label: "Forest Class"),
                 _ForestLegendDot(color: Colors.redAccent, label: "Forest Loss"),
@@ -2376,10 +2387,10 @@ class _DashboardScreenState extends State<DashboardScreen>
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-                color: Colors.greenAccent.withOpacity(0.08),
+                color: Colors.greenAccent.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
-                border:
-                    Border.all(color: Colors.greenAccent.withOpacity(0.22))),
+                border: Border.all(
+                    color: Colors.greenAccent.withValues(alpha: 0.22))),
             child: Text(
               _forestReady
                   ? "Live result from $_forestSource. Classes are sampled from Bhuvan LULC WMS GetFeatureInfo around the selected coordinate."
@@ -2438,9 +2449,9 @@ class _DashboardScreenState extends State<DashboardScreen>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-                color: color.withOpacity(0.10),
+                color: color.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: color.withOpacity(0.25))),
+                border: Border.all(color: color.withValues(alpha: 0.25))),
             child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(width: 12),
@@ -2510,7 +2521,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             LatLng(lat + cell, lon + cell),
             LatLng(lat + cell, lon - cell),
           ],
-          color: color.withOpacity(loss ? 0.42 : 0.16),
+          color: color.withValues(alpha: loss ? 0.42 : 0.16),
           borderColor: color,
           borderStrokeWidth: loss ? 2.5 : 1.4,
           isFilled: true);
@@ -2540,9 +2551,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
       decoration: BoxDecoration(
-          color: const Color(0xFF0B1221).withOpacity(0.88),
+          color: const Color(0xFF0B1221).withValues(alpha: 0.88),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.5))),
+          border: Border.all(color: color.withValues(alpha: 0.5))),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -2593,8 +2604,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
     final endpoints = [
       '$kBackendUrl/api/forest_scan',
-      'http://127.0.0.1:5000/api/forest_scan',
-      'http://localhost:5000/api/forest_scan',
+      if (kAllowLocalBackendFallback) 'http://127.0.0.1:5000/api/forest_scan',
+      if (kAllowLocalBackendFallback) 'http://localhost:5000/api/forest_scan',
     ];
 
     Object? lastError;
@@ -2731,7 +2742,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       padding: const EdgeInsets.all(16),
       child: SingleChildScrollView(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: const [
+          const Row(children: [
             Icon(Icons.policy_rounded, color: Colors.orangeAccent, size: 22),
             SizedBox(width: 10),
             Expanded(
@@ -2764,9 +2775,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF39FF14).withOpacity(0.2)),
+        border:
+            Border.all(color: const Color(0xFF39FF14).withValues(alpha: 0.2)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text("Land Encroachment Details",
@@ -2791,9 +2803,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.orangeAccent.withOpacity(0.08),
+        color: Colors.orangeAccent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.orangeAccent.withOpacity(0.25)),
+        border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.25)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text("Bhu-Prahari Complaint",
@@ -2840,7 +2852,8 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.white,
-            side: BorderSide(color: Colors.orangeAccent.withOpacity(0.45)),
+            side:
+                BorderSide(color: Colors.orangeAccent.withValues(alpha: 0.45)),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -2880,7 +2893,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         return Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
+            color: Colors.white.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.white10),
           ),
@@ -3153,13 +3166,13 @@ class _DashboardScreenState extends State<DashboardScreen>
         child: Container(
             width: 84,
             decoration: BoxDecoration(
-              color: const Color(0xFF06111F).withOpacity(0.86),
+              color: const Color(0xFF06111F).withValues(alpha: 0.86),
               border: Border(
                   right: BorderSide(
-                      color: const Color(0xFF39FF14).withOpacity(0.12))),
+                      color: const Color(0xFF39FF14).withValues(alpha: 0.12))),
               boxShadow: [
                 BoxShadow(
-                    color: const Color(0xFF39FF14).withOpacity(0.08),
+                    color: const Color(0xFF39FF14).withValues(alpha: 0.08),
                     blurRadius: 28,
                     offset: const Offset(10, 0))
               ],
@@ -3203,16 +3216,16 @@ class _DashboardScreenState extends State<DashboardScreen>
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                         color: act
-                            ? const Color(0xFF39FF14).withOpacity(0.65)
-                            : Colors.white.withOpacity(0.05)),
+                            ? const Color(0xFF39FF14).withValues(alpha: 0.65)
+                            : Colors.white.withValues(alpha: 0.05)),
                     color: act
-                        ? const Color(0xFF39FF14).withOpacity(0.13)
-                        : Colors.white.withOpacity(0.02),
+                        ? const Color(0xFF39FF14).withValues(alpha: 0.13)
+                        : Colors.white.withValues(alpha: 0.02),
                     boxShadow: act
                         ? [
                             BoxShadow(
-                                color:
-                                    const Color(0xFF39FF14).withOpacity(0.22),
+                                color: const Color(0xFF39FF14)
+                                    .withValues(alpha: 0.22),
                                 blurRadius: 18)
                           ]
                         : null),
@@ -3247,10 +3260,11 @@ class _DashboardScreenState extends State<DashboardScreen>
             height: 60,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
-                color: const Color(0xFF06111F).withOpacity(0.84),
+                color: const Color(0xFF06111F).withValues(alpha: 0.84),
                 border: Border(
                     bottom: BorderSide(
-                        color: const Color(0xFF39FF14).withOpacity(0.12)))),
+                        color:
+                            const Color(0xFF39FF14).withValues(alpha: 0.12)))),
             child: Row(children: [
               if (isMobile)
                 IconButton(
@@ -3353,13 +3367,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                     width: double.infinity,
                     height: double.infinity,
                     decoration: BoxDecoration(
-                      color: Color(0xFF020914),
+                      color: const Color(0xFF020914),
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
                           const Color(0xFF020914),
-                          const Color(0xFF09211F).withOpacity(0.96),
+                          const Color(0xFF09211F).withValues(alpha: 0.96),
                           const Color(0xFF07111E),
                         ],
                       ),
@@ -3373,8 +3387,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
                                 colors: [
-                                  const Color(0xFF020914).withOpacity(0.96),
-                                  const Color(0xFF06111F).withOpacity(0.70),
+                                  const Color(0xFF020914)
+                                      .withValues(alpha: 0.96),
+                                  const Color(0xFF06111F)
+                                      .withValues(alpha: 0.70),
                                   Colors.transparent,
                                 ],
                               ),
@@ -3386,11 +3402,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                             width: isMobile ? 260 : 420,
                             padding: const EdgeInsets.all(22),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF06111F).withOpacity(0.74),
+                              color: const Color(0xFF06111F)
+                                  .withValues(alpha: 0.74),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                   color: const Color(0xFF39FF14)
-                                      .withOpacity(0.22)),
+                                      .withValues(alpha: 0.22)),
                             ),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -3472,7 +3489,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               child: Container(
                   width: isMobile ? null : 350,
                   decoration: BoxDecoration(
-                      color: const Color(0xFF0B1221).withOpacity(0.9),
+                      color: const Color(0xFF0B1221).withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.white24)),
                   child: Row(children: [
@@ -3506,7 +3523,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 left: 20,
                 child: Container(
                     decoration: BoxDecoration(
-                        color: const Color(0xFF0B1221).withOpacity(0.9),
+                        color: const Color(0xFF0B1221).withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.white24)),
                     child: Column(children: [
@@ -3534,11 +3551,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0B1221).withOpacity(0.9),
+                      color: const Color(0xFF0B1221).withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                           color: _isSatellite
-                              ? Color(0xFF39FF14).withOpacity(0.5)
+                              ? const Color(0xFF39FF14).withValues(alpha: 0.5)
                               : Colors.white24),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -3546,14 +3563,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                           _isSatellite
                               ? Icons.layers_rounded
                               : Icons.map_outlined,
-                          color:
-                              _isSatellite ? Color(0xFF39FF14) : Colors.white,
+                          color: _isSatellite
+                              ? const Color(0xFF39FF14)
+                              : Colors.white,
                           size: 18),
                       const SizedBox(width: 6),
                       Text(_isSatellite ? "Satellite" : "Street",
                           style: TextStyle(
                               color: _isSatellite
-                                  ? Color(0xFF39FF14)
+                                  ? const Color(0xFF39FF14)
                                   : Colors.white,
                               fontSize: 11,
                               fontWeight: FontWeight.bold)),
@@ -3570,11 +3588,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0B1221).withOpacity(0.9),
+                      color: const Color(0xFF0B1221).withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                           color: _showBhuvanWms
-                              ? Colors.orangeAccent.withOpacity(0.5)
+                              ? Colors.orangeAccent.withValues(alpha: 0.5)
                               : Colors.white24),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -3604,11 +3622,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0B1221).withOpacity(0.9),
+                      color: const Color(0xFF0B1221).withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                           color: _showTimeline
-                              ? Colors.purpleAccent.withOpacity(0.5)
+                              ? Colors.purpleAccent.withValues(alpha: 0.5)
                               : Colors.white24),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -3639,11 +3657,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0B1221).withOpacity(0.9),
+                      color: const Color(0xFF0B1221).withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                           color: _showForestWatch
-                              ? Colors.greenAccent.withOpacity(0.55)
+                              ? Colors.greenAccent.withValues(alpha: 0.55)
                               : Colors.white24),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -3671,31 +3689,37 @@ class _DashboardScreenState extends State<DashboardScreen>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                        color: const Color(0xFF0B1221).withOpacity(0.8),
+                        color: const Color(0xFF0B1221).withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.white24)),
                     child: Row(children: [
-                      Icon(Icons.thermostat,
+                      const Icon(Icons.thermostat,
                           color: Colors.orangeAccent, size: 14),
                       const SizedBox(width: 5),
                       Text("${_envData['temp']}°C",
-                          style: TextStyle(color: Colors.white, fontSize: 11)),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 11)),
                       const SizedBox(width: 10),
-                      Icon(Icons.air, color: Colors.lightBlueAccent, size: 14),
+                      const Icon(Icons.air,
+                          color: Colors.lightBlueAccent, size: 14),
                       const SizedBox(width: 5),
                       Text("AQI: ${_envData['aqi']}",
-                          style: TextStyle(color: Colors.white, fontSize: 11)),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 11)),
                       const SizedBox(width: 10),
-                      Icon(Icons.landscape, color: Colors.brown, size: 14),
+                      const Icon(Icons.landscape,
+                          color: Colors.brown, size: 14),
                       const SizedBox(width: 5),
                       Text("Soil: ${_envData['soil']}",
-                          style: TextStyle(color: Colors.white, fontSize: 11)),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 11)),
                       const SizedBox(width: 10),
-                      Icon(Icons.water_drop,
+                      const Icon(Icons.water_drop,
                           color: Colors.blueAccent, size: 14),
                       const SizedBox(width: 5),
                       Text("${_envData['moisture']}%",
-                          style: TextStyle(color: Colors.white, fontSize: 11))
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 11))
                     ]))),
           // Change Detection Timeline Slider
           if (_hasSearched && widget.isOfficer && _showTimeline)
@@ -3707,13 +3731,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0B1221).withOpacity(0.95),
+                  color: const Color(0xFF0B1221).withValues(alpha: 0.95),
                   borderRadius: BorderRadius.circular(12),
-                  border:
-                      Border.all(color: Colors.purpleAccent.withOpacity(0.4)),
+                  border: Border.all(
+                      color: Colors.purpleAccent.withValues(alpha: 0.4)),
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.black.withOpacity(0.5), blurRadius: 15)
+                        color: Colors.black.withValues(alpha: 0.5),
+                        blurRadius: 15)
                   ],
                 ),
                 child: Column(
@@ -3735,7 +3760,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                              color: Colors.purpleAccent.withOpacity(0.2),
+                              color: Colors.purpleAccent.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4)),
                           child: Text("$_timelineYear",
                               style: const TextStyle(
@@ -3750,7 +3775,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                         activeTrackColor: Colors.purpleAccent,
                         inactiveTrackColor: Colors.white12,
                         thumbColor: Colors.purpleAccent,
-                        overlayColor: Colors.purpleAccent.withOpacity(0.2),
+                        overlayColor:
+                            Colors.purpleAccent.withValues(alpha: 0.2),
                         valueIndicatorColor: Colors.purpleAccent,
                         valueIndicatorTextStyle: const TextStyle(
                             color: Colors.white, fontWeight: FontWeight.bold),
@@ -3766,9 +3792,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                         },
                       ),
                     ),
-                    Row(
+                    const Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
+                      children: [
                         Text("2018",
                             style:
                                 TextStyle(color: Colors.white30, fontSize: 9)),
@@ -3795,7 +3821,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 child: Container(
                     decoration: BoxDecoration(
                         border: Border.all(
-                            color: Color(0xFF39FF14).withOpacity(0.3),
+                            color:
+                                const Color(0xFF39FF14).withValues(alpha: 0.3),
                             width: isMobile ? 10 : 40)),
                     child: const Center(
                         child: Icon(Icons.center_focus_strong,
@@ -3819,19 +3846,23 @@ class _DashboardScreenState extends State<DashboardScreen>
                 style: TextStyle(
                     color: _status.contains("ERROR")
                         ? Colors.redAccent
-                        : (_ready ? Colors.greenAccent : Color(0xFF39FF14)),
+                        : (_ready
+                            ? Colors.greenAccent
+                            : const Color(0xFF39FF14)),
                     fontSize: 12,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             if (widget.isOfficer) ...[
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text("Quick User Tools",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold)),
-                Icon(Icons.flash_on, color: Color(0xFF39FF14), size: 16)
-              ]),
+              const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Quick User Tools",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold)),
+                    Icon(Icons.flash_on, color: Color(0xFF39FF14), size: 16)
+                  ]),
               const SizedBox(height: 10),
               _actionBtn(
                   _droneConnected
@@ -3845,10 +3876,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Color(0xFF39FF14).withOpacity(0.05),
+                    color: const Color(0xFF39FF14).withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(8),
-                    border:
-                        Border.all(color: Color(0xFF39FF14).withOpacity(0.3)),
+                    border: Border.all(
+                        color: const Color(0xFF39FF14).withValues(alpha: 0.3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -3857,7 +3888,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         Container(
                             width: 8,
                             height: 8,
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                                 color: Colors.greenAccent,
                                 shape: BoxShape.circle,
                                 boxShadow: [
@@ -3887,7 +3918,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 "📡",
                                 "Alt",
                                 "${(_droneTelemetry['altitude'] as double).toStringAsFixed(1)}m",
-                                Color(0xFF39FF14)),
+                                const Color(0xFF39FF14)),
                             _telemetryItem(
                                 "💨",
                                 "Speed",
@@ -3950,7 +3981,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       delay: 100.ms)
                   .slideY(begin: 0.2, end: 0),
               _stat("Detection Confidence", "${_accuracy.toStringAsFixed(1)}%",
-                      Color(0xFF39FF14))
+                      const Color(0xFF39FF14))
                   .animate()
                   .fadeIn(
                       duration: 600.ms,
@@ -3960,7 +3991,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
+                          color: Colors.white.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8)),
                       child: Column(children: [
                         Row(
@@ -3991,19 +4022,22 @@ class _DashboardScreenState extends State<DashboardScreen>
                       delay: 300.ms)
                   .scale(begin: const Offset(0.95, 0.95)),
               const SizedBox(height: 25),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text("Anomaly Detection",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold)),
-                Icon(Icons.more_horiz, color: Colors.white54)
-              ]),
+              const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Anomaly Detection",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold)),
+                    Icon(Icons.more_horiz, color: Colors.white54)
+                  ]),
               const SizedBox(height: 10),
               Text(
                   "High-Precision Pixel Differencing: Unauthorized Construction Detected.",
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.5), fontSize: 11)),
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 11)),
               const SizedBox(height: 25),
               if (widget.isOfficer) ...[
                 Row(children: [
@@ -4016,10 +4050,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                     curve: Curves.easeOutCubic,
                     delay: 400.ms),
                 const SizedBox(height: 20),
-                Row(
+                const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("Scan Actions",
+                      Text("Scan Actions",
                           style: TextStyle(
                               color: Colors.white,
                               fontSize: 14,
@@ -4044,7 +4078,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       width: double.infinity,
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
+                          color: Colors.orange.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.orangeAccent)),
                       child: Column(
@@ -4116,7 +4150,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
+                          color: Colors.white.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8)),
                       child: Row(children: [
                         const Icon(Icons.image,
@@ -4151,7 +4185,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-          color: const Color(0xFF1E293B).withOpacity(0.5),
+          color: const Color(0xFF1E293B).withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.white10)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -4287,7 +4321,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                  color: Color(0xFF39FF14).withOpacity(0.1),
+                                  color: const Color(0xFF39FF14)
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8)),
                               child: const Icon(Icons.flight,
                                   color: Color(0xFF39FF14), size: 24),
@@ -4328,10 +4363,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                               child: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                                color: Color(0xFF39FF14).withOpacity(0.1),
+                                color: const Color(0xFF39FF14)
+                                    .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                    color: Color(0xFF39FF14).withOpacity(0.5))),
+                                    color: const Color(0xFF39FF14)
+                                        .withValues(alpha: 0.5))),
                             child: const Column(children: [
                               Icon(Icons.webhook,
                                   color: Color(0xFF39FF14), size: 20),
@@ -4351,7 +4388,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                               child: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.03),
+                                color: Colors.white.withValues(alpha: 0.03),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(color: Colors.white10)),
                             child: const Column(children: [
@@ -4390,7 +4427,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                             prefixIcon: const Icon(Icons.router,
                                 color: Color(0xFF39FF14), size: 18),
                             filled: true,
-                            fillColor: Colors.white.withOpacity(0.05),
+                            fillColor: Colors.white.withValues(alpha: 0.05),
                             border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide.none),
@@ -4401,7 +4438,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.03),
+                              color: Colors.white.withValues(alpha: 0.03),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(color: Colors.white10)),
                           child: Row(children: [
@@ -4431,7 +4468,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                  color: Colors.greenAccent.withOpacity(0.1),
+                                  color:
+                                      Colors.greenAccent.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4)),
                               child: Text(
                                   _searchCtrl.text.isNotEmpty
@@ -4451,13 +4489,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                           height: 48,
                           child: ElevatedButton.icon(
                             onPressed: () async {
+                              final messenger = ScaffoldMessenger.of(context);
                               Navigator.pop(c);
                               _droneIp = _droneIpCtrl.text.trim();
                               if (_droneIp.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text("Enter drone IP address"),
-                                        backgroundColor: Colors.red));
+                                messenger.showSnackBar(const SnackBar(
+                                    content: Text("Enter drone IP address"),
+                                    backgroundColor: Colors.red));
                                 return;
                               }
                               setState(() {
@@ -4473,7 +4511,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
                                 if (response.statusCode == 200) {
                                   final data = jsonDecode(response.body);
-                                  if (mounted)
+                                  if (mounted) {
                                     setState(() {
                                       _droneConnected = true;
                                       _droneActive = true;
@@ -4489,19 +4527,20 @@ class _DashboardScreenState extends State<DashboardScreen>
                                       _status =
                                           "🚁 DRONE CONNECTED - LIVE FEED ACTIVE";
                                     });
+                                  }
                                   // Start telemetry polling
+                                  if (!mounted) return;
                                   _startDroneTelemetryPoll();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text(
-                                              "✅ Drone connected successfully!"),
-                                          backgroundColor: Colors.green));
+                                  messenger.showSnackBar(const SnackBar(
+                                      content: Text(
+                                          "✅ Drone connected successfully!"),
+                                      backgroundColor: Colors.green));
                                 } else {
                                   throw "Server responded with ${response.statusCode}";
                                 }
                               } catch (e) {
                                 // Fallback to simulation mode with proper notification
-                                if (mounted)
+                                if (mounted) {
                                   setState(() {
                                     _droneConnected = true;
                                     _droneActive = true;
@@ -4515,6 +4554,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     _status =
                                         "🚁 DRONE ACTIVE (SIMULATION - Real GCS at $_droneIp not reachable)";
                                   });
+                                }
                                 // Simulate telemetry updates
                                 _droneTimer = Timer.periodic(
                                     const Duration(seconds: 2), (t) {
@@ -4546,8 +4586,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     t.cancel();
                                   }
                                 });
-                                ScaffoldMessenger.of(context)
-                                    .showSnackBar(SnackBar(
+                                if (!mounted) return;
+                                messenger.showSnackBar(SnackBar(
                                   content: Text(
                                       "⚠️ Real drone at $_droneIp not reachable. Running in simulation mode."),
                                   backgroundColor: Colors.orange,
@@ -4561,7 +4601,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 1)),
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF39FF14),
+                                backgroundColor: const Color(0xFF39FF14),
                                 foregroundColor: Colors.black,
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8))),
@@ -4631,6 +4671,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       FilePickerResult? result =
           await FilePicker.pickFiles(type: FileType.image);
 
+      if (!mounted) return;
       if (result != null) {
         setState(() {
           _fieldEvidences.insert(0, {
@@ -4656,6 +4697,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         setState(() => _status = "⚠️ CAPTURE CANCELLED");
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _status = "❌ GEOTAG ERROR: $e");
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
@@ -4783,13 +4825,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             RichText(
-                                text: TextSpan(
-                                    style: const TextStyle(
+                                text: const TextSpan(
+                                    style: TextStyle(
                                         color: Colors.black87,
                                         fontSize: 13,
                                         height: 1.6),
                                     children: [
-                                  const TextSpan(
+                                  TextSpan(
                                       text: "SUBJECT: ",
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold)),
@@ -4946,12 +4988,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                 backgroundColor: Colors.green));
                                       }
                                     } catch (e) {
-                                      if (mounted)
+                                      if (mounted) {
                                         ScaffoldMessenger.of(context)
                                             .showSnackBar(SnackBar(
                                                 content:
                                                     Text("WhatsApp Error: $e"),
                                                 backgroundColor: Colors.red));
+                                      }
                                     }
                                   },
                                   icon: const Icon(Icons.chat, size: 16),
@@ -4995,11 +5038,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                                         });
                                       }
                                     } catch (e) {
-                                      if (mounted)
+                                      if (mounted) {
                                         ScaffoldMessenger.of(context)
                                             .showSnackBar(SnackBar(
                                                 content: Text("SMS Error: $e"),
                                                 backgroundColor: Colors.red));
+                                      }
                                     }
                                   },
                                   icon: const Icon(Icons.sms, size: 16),
@@ -5059,12 +5103,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                 backgroundColor: Colors.green));
                                       }
                                     } catch (e) {
-                                      if (mounted)
+                                      if (mounted) {
                                         ScaffoldMessenger.of(context)
                                             .showSnackBar(SnackBar(
                                                 content:
                                                     Text("Email Error: $e"),
                                                 backgroundColor: Colors.red));
+                                      }
                                     }
                                   },
                                   icon: const Icon(Icons.email, size: 16),
@@ -5158,7 +5203,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     showDialog(
         context: context,
         builder: (c) => StatefulBuilder(builder: (context, setDialogState) {
-              String _t(String en, String hi) => _isHindi ? hi : en;
+              String t(String en, String hi) => _isHindi ? hi : en;
               final bool isMobile = MediaQuery.of(context).size.width < 900;
               return Dialog(
                   backgroundColor: const Color(0xFF0F172A),
@@ -5182,7 +5227,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                               const SizedBox(width: 15),
                               Expanded(
                                   child: Text(
-                                      _t("Bhu-Prahari - Citizen Portal",
+                                      t("Bhu-Prahari - Citizen Portal",
                                           "भू-प्रहरी - नागरिक पोर्टल"),
                                       style: TextStyle(
                                           color: Colors.white,
@@ -5220,7 +5265,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                             SizedBox(
                                                 height: 300,
                                                 child: _bhuCard(
-                                                    _t("Report Suspected Encroachment",
+                                                    t("Report Suspected Encroachment",
                                                         "अतिक्रमण की रिपोर्ट करें"),
                                                     Column(
                                                       mainAxisAlignment:
@@ -5237,13 +5282,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                             decoration: BoxDecoration(
                                                                 color: Colors
                                                                     .white
-                                                                    .withOpacity(
-                                                                        0.02),
+                                                                    .withValues(
+                                                                        alpha:
+                                                                            0.02),
                                                                 border: Border.all(
                                                                     color: Colors
                                                                         .cyanAccent
-                                                                        .withOpacity(
-                                                                            0.5),
+                                                                        .withValues(
+                                                                            alpha:
+                                                                                0.5),
                                                                     width: 1,
                                                                     style: BorderStyle
                                                                         .solid),
@@ -5264,8 +5311,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                       size: 40,
                                                                       color: Colors
                                                                           .cyanAccent
-                                                                          .withOpacity(
-                                                                              0.7)),
+                                                                          .withValues(
+                                                                              alpha: 0.7)),
                                                                   const SizedBox(
                                                                       height:
                                                                           10),
@@ -5276,10 +5323,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                         textAlign: TextAlign.center,
                                                                         text: TextSpan(children: [
                                                                           TextSpan(
-                                                                              text: _t("Drag & Drop Photos or PDF Reports Here or ", "फोटो या पीडीएफ रिपोर्ट यहां खींचें या "),
+                                                                              text: t("Drag & Drop Photos or PDF Reports Here or ", "फोटो या पीडीएफ रिपोर्ट यहां खींचें या "),
                                                                               style: const TextStyle(color: Colors.white70)),
                                                                           TextSpan(
-                                                                              text: _t("Browse", "ब्राउज़ करें"),
+                                                                              text: t("Browse", "ब्राउज़ करें"),
                                                                               style: const TextStyle(color: Color(0xFF39FF14), fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
                                                                         ])),
                                                                   ),
@@ -5294,7 +5341,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                             SizedBox(
                                                 height: 300,
                                                 child: _bhuCard(
-                                                    _t("Community Scan Analysis",
+                                                    t("Community Scan Analysis",
                                                         "सामुदायिक स्कैन विश्लेषण"),
                                                     Column(
                                                       children: [
@@ -5320,8 +5367,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                   decoration: BoxDecoration(
                                                                       color: Colors
                                                                           .cyanAccent
-                                                                          .withOpacity(
-                                                                              0.3),
+                                                                          .withValues(
+                                                                              alpha:
+                                                                                  0.3),
                                                                       shape: BoxShape
                                                                           .circle),
                                                                   child: Center(
@@ -5342,27 +5390,27 @@ class _DashboardScreenState extends State<DashboardScreen>
                                             SizedBox(
                                                 height: 300,
                                                 child: _bhuCard(
-                                                    _t("Verified Community Reports",
+                                                    t("Verified Community Reports",
                                                         "सत्यापित सामुदायिक रिपोर्ट"),
                                                     Column(children: [
                                                       _leaderboardItem(
                                                           1,
-                                                          _t("Rajesh Kumar",
+                                                          t("Rajesh Kumar",
                                                               "राजेश कुमार"),
-                                                          _t("120 Reports",
+                                                          t("120 Reports",
                                                               "120 रिपोर्ट"),
                                                           Colors.greenAccent
-                                                              .withOpacity(
-                                                                  0.2)),
+                                                              .withValues(
+                                                                  alpha: 0.2)),
                                                       _leaderboardItem(
                                                           2,
-                                                          _t("Priya Singh",
+                                                          t("Priya Singh",
                                                               "प्रिया सिंह"),
-                                                          _t("95 Reports",
+                                                          t("95 Reports",
                                                               "95 रिपोर्ट"),
                                                           Colors.blueAccent
-                                                              .withOpacity(
-                                                                  0.2)),
+                                                              .withValues(
+                                                                  alpha: 0.2)),
                                                     ]))),
                                           ],
                                         ),
@@ -5375,7 +5423,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                             // Top Left: Report
                                             Expanded(
                                                 child: _bhuCard(
-                                                    _t("Report Suspected Encroachment",
+                                                    t("Report Suspected Encroachment",
                                                         "अतिक्रमण की रिपोर्ट करें"),
                                                     Column(
                                                         mainAxisAlignment:
@@ -5390,13 +5438,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                       const EdgeInsets.all(
                                                                           10),
                                                                   decoration: BoxDecoration(
-                                                                      color: Colors
-                                                                          .white
-                                                                          .withOpacity(
+                                                                      color: Colors.white.withValues(
+                                                                          alpha:
                                                                               0.02),
                                                                       border: Border.all(
-                                                                          color: Color(0xFF39FF14).withOpacity(
-                                                                              0.5),
+                                                                          color: const Color(0xFF39FF14).withValues(
+                                                                              alpha:
+                                                                                  0.5),
                                                                           width:
                                                                               1,
                                                                           style: BorderStyle
@@ -5415,7 +5463,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                             size:
                                                                                 40,
                                                                             color:
-                                                                                Color(0xFF39FF14).withOpacity(0.7)),
+                                                                                const Color(0xFF39FF14).withValues(alpha: 0.7)),
                                                                         const SizedBox(
                                                                             height:
                                                                                 10),
@@ -5425,15 +5473,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                           child: RichText(
                                                                               textAlign: TextAlign.center,
                                                                               text: TextSpan(children: [
-                                                                                TextSpan(text: _t("Drag & Drop Photos or PDF Reports Here or ", "फोटो या पीडीएफ रिपोर्ट यहां खींचें या "), style: const TextStyle(color: Colors.white70)),
-                                                                                TextSpan(text: _t("Browse", "ब्राउज़ करें"), style: const TextStyle(color: Color(0xFF39FF14), fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
+                                                                                TextSpan(text: t("Drag & Drop Photos or PDF Reports Here or ", "फोटो या पीडीएफ रिपोर्ट यहां खींचें या "), style: const TextStyle(color: Colors.white70)),
+                                                                                TextSpan(text: t("Browse", "ब्राउज़ करें"), style: const TextStyle(color: Color(0xFF39FF14), fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
                                                                               ])),
                                                                         ),
                                                                         const SizedBox(
                                                                             height:
                                                                                 5),
                                                                         Text(
-                                                                            _t("Help us verify land status.",
+                                                                            t("Help us verify land status.",
                                                                                 "भूमि की स्थिति सत्यापित करने में हमारी सहायता करें।"),
                                                                             style:
                                                                                 const TextStyle(color: Colors.white54, fontSize: 10))
@@ -5449,13 +5497,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                       setDialogState(() =>
                                                                           _isAnonymous =
                                                                               v),
-                                                                  activeColor:
+                                                                  activeThumbColor:
                                                                       Colors
                                                                           .cyanAccent),
                                                               const SizedBox(
                                                                   width: 5),
                                                               Text(
-                                                                  _t("Submit Anonymously",
+                                                                  t("Submit Anonymously",
                                                                       "गुमनाम रूप से सबमिट करें"),
                                                                   style: const TextStyle(
                                                                       color: Colors
@@ -5465,7 +5513,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                             ],
                                                           ),
                                                           Text(
-                                                              _t("Privacy Note: Your personal information is kept confidential.",
+                                                              t("Privacy Note: Your personal information is kept confidential.",
                                                                   "गोपनीयता नोट: आपकी व्यक्तिगत जानकारी गोपनीय रखी जाती है।"),
                                                               style: const TextStyle(
                                                                   color: Colors
@@ -5476,7 +5524,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                             // Bottom Left: Status
                                             Expanded(
                                                 child: _bhuCard(
-                                                    _t("Status of Action",
+                                                    t("Status of Action",
                                                         "कार्यवाही की स्थिति"),
                                                     Column(
                                                         crossAxisAlignment:
@@ -5484,7 +5532,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                 .start,
                                                         children: [
                                                           Text(
-                                                              _t("Submitted complaints to sub-division.",
+                                                              t("Submitted complaints to sub-division.",
                                                                   "सब-डिवीजन में जमा की गई शिकायतें।"),
                                                               style: const TextStyle(
                                                                   color: Colors
@@ -5494,21 +5542,21 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                           const SizedBox(
                                                               height: 15),
                                                           _timelineItem(
-                                                              _t("Oct 25, 2023",
+                                                              t("Oct 25, 2023",
                                                                   "25 अक्टूबर, 2023"),
-                                                              _t("Complaint ID BHU-202310-42 - Action: Field Inspection Scheduled",
+                                                              t("Complaint ID BHU-202310-42 - Action: Field Inspection Scheduled",
                                                                   "शिकायत आईडी BHU-202310-42 - कार्यवाही: क्षेत्र निरीक्षण निर्धारित"),
                                                               true),
                                                           _timelineItem(
-                                                              _t("Oct 20, 2023",
+                                                              t("Oct 20, 2023",
                                                                   "20 अक्टूबर, 2023"),
-                                                              _t("Status: Satellite Verification Complete, Awaiting Review",
+                                                              t("Status: Satellite Verification Complete, Awaiting Review",
                                                                   "स्थिति: उपग्रह सत्यापन पूर्ण, समीक्षा की प्रतीक्षा है"),
                                                               false),
                                                           _timelineItem(
-                                                              _t("Oct 15, 2023",
+                                                              t("Oct 15, 2023",
                                                                   "15 अक्टूबर, 2023"),
-                                                              _t("Action: Case Assigned to Enforcement Team",
+                                                              t("Action: Case Assigned to Enforcement Team",
                                                                   "कार्यवाही: प्रवर्तन टीम को सौंपा गया मामला"),
                                                               false,
                                                               isLast: true),
@@ -5522,7 +5570,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                           // Top Right: Map
                                           Expanded(
                                               child: _bhuCard(
-                                                  _t("Real-Time Verification Status",
+                                                  t("Real-Time Verification Status",
                                                       "वास्तविक समय सत्यापन स्थिति"),
                                                   ClipRRect(
                                                       borderRadius:
@@ -5547,8 +5595,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                             decoration: BoxDecoration(
                                                                 color: Colors
                                                                     .cyanAccent
-                                                                    .withOpacity(
-                                                                        0.3),
+                                                                    .withValues(
+                                                                        alpha:
+                                                                            0.3),
                                                                 shape: BoxShape
                                                                     .circle),
                                                             child: Center(
@@ -5585,14 +5634,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                             .min,
                                                                     children: [
                                                                       Text(
-                                                                          _t("ℹ️ Location ID: BHU-202310-45",
+                                                                          t("ℹ️ Location ID: BHU-202310-45",
                                                                               "ℹ️ स्थान आईडी: BHU-202310-45"),
                                                                           style: const TextStyle(
                                                                               color: Colors.white,
                                                                               fontSize: 12,
                                                                               fontWeight: FontWeight.bold)),
                                                                       Text(
-                                                                          _t("Status: Satellite Scan Initiated",
+                                                                          t("Status: Satellite Scan Initiated",
                                                                               "स्थिति: उपग्रह स्कैन शुरू किया गया"),
                                                                           style: const TextStyle(
                                                                               color: Colors.white70,
@@ -5603,30 +5652,32 @@ class _DashboardScreenState extends State<DashboardScreen>
                                           // Bottom Right: Leaderboard
                                           Expanded(
                                               child: _bhuCard(
-                                                  _t("Verified Community Reports",
+                                                  t("Verified Community Reports",
                                                       "सत्यापित सामुदायिक रिपोर्ट"),
                                                   Column(children: [
                                                     _leaderboardItem(
                                                         1,
-                                                        _t("Rajesh Kumar",
+                                                        t("Rajesh Kumar",
                                                             "राजेश कुमार"),
-                                                        _t("120 Reports",
+                                                        t("120 Reports",
                                                             "120 रिपोर्ट"),
                                                         Colors.greenAccent
-                                                            .withOpacity(0.2)),
+                                                            .withValues(
+                                                                alpha: 0.2)),
                                                     _leaderboardItem(
                                                         2,
-                                                        _t("Priya Singh",
+                                                        t("Priya Singh",
                                                             "प्रिया सिंह"),
-                                                        _t("95 Reports",
+                                                        t("95 Reports",
                                                             "95 रिपोर्ट"),
                                                         Colors.blueAccent
-                                                            .withOpacity(0.2)),
+                                                            .withValues(
+                                                                alpha: 0.2)),
                                                     _leaderboardItem(
                                                         3,
-                                                        _t("Vikram Patel",
+                                                        t("Vikram Patel",
                                                             "विक्रम पटेल"),
-                                                        _t("80 Reports",
+                                                        t("80 Reports",
                                                             "80 रिपोर्ट"),
                                                         Colors.white10),
                                                     const Spacer(),
@@ -5643,7 +5694,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                                                         15)),
                                                             onPressed: () {},
                                                             child: Text(
-                                                                _t("View Full Leaderboard",
+                                                                t("View Full Leaderboard",
                                                                     "पूर्ण लीडरबोर्ड देखें"),
                                                                 style: const TextStyle(
                                                                     color: Colors
@@ -5660,7 +5711,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         width: double.infinity,
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-            color: const Color(0xFF1E293B).withOpacity(0.5),
+            color: const Color(0xFF1E293B).withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.white10)),
         child: Column(
@@ -5756,7 +5807,8 @@ class _DashboardScreenState extends State<DashboardScreen>
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.white10),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 20)
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.5), blurRadius: 20)
               ]),
           child: Material(
             color: Colors.transparent,
@@ -5859,10 +5911,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                             padding: const EdgeInsets.all(10),
                             margin: const EdgeInsets.only(bottom: 12),
                             decoration: BoxDecoration(
-                                color: Colors.amber.withOpacity(0.1),
+                                color: Colors.amber.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                    color: Colors.amber.withOpacity(0.3))),
+                                    color:
+                                        Colors.amber.withValues(alpha: 0.3))),
                             child: Row(children: [
                               const Icon(Icons.info_outline,
                                   color: Colors.amber, size: 16),
@@ -5871,7 +5924,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   child: Text(
                                       "LEFT: Historical imagery (clean land) | RIGHT: Current imagery with detected encroachments (RED zones)",
                                       style: TextStyle(
-                                          color: Colors.amber.withOpacity(0.8),
+                                          color: Colors.amber
+                                              .withValues(alpha: 0.8),
                                           fontSize: 11))),
                             ])),
                         Expanded(
@@ -5916,8 +5970,8 @@ class _DashboardScreenState extends State<DashboardScreen>
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
               color: showOverlay
-                  ? Colors.redAccent.withOpacity(0.2)
-                  : Colors.green.withOpacity(0.2),
+                  ? Colors.redAccent.withValues(alpha: 0.2)
+                  : Colors.green.withValues(alpha: 0.2),
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(8))),
           child: Row(children: [
@@ -5940,8 +5994,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                     const BorderRadius.vertical(bottom: Radius.circular(8)),
                 border: Border.all(
                     color: showOverlay
-                        ? Colors.redAccent.withOpacity(0.5)
-                        : Colors.greenAccent.withOpacity(0.5))),
+                        ? Colors.redAccent.withValues(alpha: 0.5)
+                        : Colors.greenAccent.withValues(alpha: 0.5))),
             child: ClipRRect(
               borderRadius:
                   const BorderRadius.vertical(bottom: Radius.circular(8)),
@@ -5993,7 +6047,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                             width: 50,
                             height: 50,
                             child: pw.Text("OFFICIAL SEAL",
-                                style: pw.TextStyle(
+                                style: const pw.TextStyle(
                                     fontSize: 6, color: PdfColors.grey500))),
                       ]),
                   pw.Divider(thickness: 2, color: PdfColors.blue900),
@@ -6034,7 +6088,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                   pw.Padding(
                       padding: const pw.EdgeInsets.all(10),
                       child: pw.Text(_notice,
-                          style: pw.TextStyle(fontSize: 10, lineSpacing: 2))),
+                          style: const pw.TextStyle(
+                              fontSize: 10, lineSpacing: 2))),
                   pw.Spacer(),
                   pw.Divider(),
                   pw.Row(
@@ -6044,17 +6099,19 @@ class _DashboardScreenState extends State<DashboardScreen>
                             style: pw.TextStyle(
                                 fontSize: 8, fontStyle: pw.FontStyle.italic)),
                         pw.Text('Page 1 of 1',
-                            style: pw.TextStyle(fontSize: 8)),
+                            style: const pw.TextStyle(fontSize: 8)),
                       ])
                 ]);
           }));
       final pdfBytes = await pdf.save();
       await Printing.sharePdf(bytes: pdfBytes, filename: 'Gravity_Dossier.pdf');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text(
               "If your device supports it, select your Email app to attach the PDF automatically."),
           backgroundColor: Colors.green));
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text("PDF Error: $e"), backgroundColor: Colors.red));
       debugPrint("PDF Error: $e");
@@ -6091,7 +6148,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   center: const Alignment(0.45, -0.58),
                   radius: 1.1,
                   colors: [
-                    const Color(0xFF123329).withOpacity(0.95),
+                    const Color(0xFF123329).withValues(alpha: 0.95),
                     const Color(0xFF071321),
                     const Color(0xFF020914),
                   ],
@@ -6106,8 +6163,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.40),
-                    const Color(0xFF020914).withOpacity(0.92),
+                    Colors.black.withValues(alpha: 0.40),
+                    const Color(0xFF020914).withValues(alpha: 0.92),
                   ],
                 ),
               ),
@@ -6120,13 +6177,13 @@ class _DashboardScreenState extends State<DashboardScreen>
               margin: const EdgeInsets.symmetric(horizontal: 22),
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
-                color: const Color(0xFF06111F).withOpacity(0.88),
+                color: const Color(0xFF06111F).withValues(alpha: 0.88),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: const Color(0xFF39FF14).withOpacity(0.36)),
+                    color: const Color(0xFF39FF14).withValues(alpha: 0.36)),
                 boxShadow: [
                   BoxShadow(
-                      color: const Color(0xFF39FF14).withOpacity(0.18),
+                      color: const Color(0xFF39FF14).withValues(alpha: 0.18),
                       blurRadius: 42,
                       offset: const Offset(0, 24))
                 ],
@@ -6173,7 +6230,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                     child: Stack(
                       children: [
                         Container(
-                            height: 9, color: Colors.white.withOpacity(0.08)),
+                            height: 9,
+                            color: Colors.white.withValues(alpha: 0.08)),
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 260),
                           height: 9,
@@ -6186,8 +6244,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                             ]),
                             boxShadow: [
                               BoxShadow(
-                                  color:
-                                      const Color(0xFF39FF14).withOpacity(0.7),
+                                  color: const Color(0xFF39FF14)
+                                      .withValues(alpha: 0.7),
                                   blurRadius: 18)
                             ],
                           ),
@@ -6214,10 +6272,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                     ],
                   ),
                   const SizedBox(height: 20),
-                  Wrap(
+                  const Wrap(
                     spacing: 10,
                     runSpacing: 10,
-                    children: const [
+                    children: [
                       _BootChip(icon: Icons.radar_rounded, label: "SAT-LINK"),
                       _BootChip(icon: Icons.map_rounded, label: "BHUVAN"),
                       _BootChip(icon: Icons.verified_user, label: "SECURE"),
@@ -6284,12 +6342,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                         decoration: BoxDecoration(
                             color: isAi
                                 ? const Color(0xFF1E293B)
-                                : Color(0xFF39FF14).withOpacity(0.2),
+                                : const Color(0xFF39FF14)
+                                    .withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                                 color: isAi
                                     ? Colors.white10
-                                    : Color(0xFF39FF14).withOpacity(0.5))),
+                                    : const Color(0xFF39FF14)
+                                        .withValues(alpha: 0.5))),
                         child: Text(msg['text']!,
                             style: const TextStyle(color: Colors.white)),
                       ),
@@ -6305,7 +6365,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     IconButton(
                         icon: Icon(Icons.image_search,
                             color: _pendingImageBase64 != null
-                                ? Color(0xFF39FF14)
+                                ? const Color(0xFF39FF14)
                                 : Colors.white54,
                             size: 20),
                         onPressed: () async {
@@ -6335,6 +6395,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                               _getGroqVisionResponse(b64, name, setModalState);
                             }
                           } catch (e) {
+                            if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                                 content: Text("Image Error: $e"),
                                 backgroundColor: Colors.red));
@@ -6351,7 +6412,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                               : "Ask Gravity AI...",
                           hintStyle: TextStyle(
                               color: _pendingImageName != null
-                                  ? Color(0xFF39FF14).withOpacity(0.5)
+                                  ? const Color(0xFF39FF14)
+                                      .withValues(alpha: 0.5)
                                   : Colors.white30),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 15, vertical: 10),
@@ -6371,8 +6433,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                     Container(
                       decoration: BoxDecoration(
                         color: _isListening
-                            ? Colors.redAccent.withOpacity(0.2)
-                            : Color(0xFF39FF14).withOpacity(0.1),
+                            ? Colors.redAccent.withValues(alpha: 0.2)
+                            : const Color(0xFF39FF14).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                         border: _isListening
                             ? Border.all(color: Colors.redAccent, width: 2)
@@ -6383,7 +6445,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           _isListening ? Icons.mic_off : Icons.mic,
                           color: _isListening
                               ? Colors.redAccent
-                              : Color(0xFF39FF14),
+                              : const Color(0xFF39FF14),
                           size: 18,
                         ),
                         onPressed: _isListening
@@ -6416,40 +6478,20 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Future<void> _getGroqResponse(String userMsg, Function setModalState) async {
-    if (kGroqKey == "YOUR_GROQ_API_KEY_HERE" || kGroqKey.isEmpty) {
-      setModalState(() {
-        _chatMsgs.add({
-          "role": "ai",
-          "text":
-              "Error: Groq API Key not configured. Please add your key in the source code."
-        });
-      });
-      return;
-    }
-
     try {
       final response = await http.post(
-        Uri.parse("https://api.groq.com/openai/v1/chat/completions"),
+        Uri.parse("$kBackendUrl/api/chat"),
         headers: {
-          "Authorization": "Bearer $kGroqKey",
           "Content-Type": "application/json",
         },
         body: jsonEncode({
-          "model": "llama-3.3-70b-versatile",
-          "messages": [
-            {
-              "role": "system",
-              "content":
-                  "You are Gravity AI, a geospatial intelligence assistant for ISRO Bhuvan platform. You help users with encroachment detection, land mapping, and administrative tasks. Be professional, concise, and futuristic."
-            },
-            {"role": "user", "content": userMsg}
-          ]
+          "message": userMsg,
         }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final aiMsg = data['choices'][0]['message']['content'];
+        final aiMsg = data['message'];
         _speak(aiMsg); // Fixed: Voice output added to chatbot
         setModalState(() {
           _chatMsgs.add({"role": "ai", "text": aiMsg});
@@ -6472,16 +6514,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   /// Multi-Modal AI: Send image to Groq Vision model for analysis
   Future<void> _getGroqVisionResponse(
       String base64Image, String imageName, Function setModalState) async {
-    if (kGroqKey.isEmpty) {
-      setModalState(() {
-        _chatMsgs.add({
-          "role": "ai",
-          "text": "Error: Groq API Key not configured. Cannot analyze image."
-        });
-      });
-      return;
-    }
-
     setModalState(() {
       _chatMsgs.add({
         "role": "ai",
@@ -6498,42 +6530,21 @@ class _DashboardScreenState extends State<DashboardScreen>
 
       final response = await http
           .post(
-            Uri.parse("https://api.groq.com/openai/v1/chat/completions"),
+            Uri.parse("$kBackendUrl/api/vision"),
             headers: {
-              "Authorization": "Bearer $kGroqKey",
               "Content-Type": "application/json",
             },
             body: jsonEncode({
-              "model": "meta-llama/llama-4-scout-17b-16e-instruct",
-              "messages": [
-                {
-                  "role": "system",
-                  "content":
-                      "You are Gravity AI, a geospatial intelligence assistant. Analyze the image provided for: 1) Signs of unauthorized construction or encroachment 2) Land-use anomalies 3) Vegetation loss 4) Building patterns. Be specific about what you observe. If it's a satellite/aerial image, provide spatial analysis. If it's a ground-level photo, analyze structural compliance."
-                },
-                {
-                  "role": "user",
-                  "content": [
-                    {
-                      "type": "text",
-                      "text":
-                          "Analyze this image for encroachment detection and land-use anomalies. Provide a detailed assessment."
-                    },
-                    {
-                      "type": "image_url",
-                      "image_url": {"url": "data:$mimeType;base64,$base64Image"}
-                    }
-                  ]
-                }
-              ],
-              "max_tokens": 1024,
+              "image_base64": base64Image,
+              "image_name": imageName,
+              "mime_type": mimeType,
             }),
           )
           .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final aiMsg = data['choices'][0]['message']['content'];
+        final aiMsg = data['message'];
         _speak(aiMsg);
         setModalState(() {
           // Remove the "analyzing..." message and replace with actual result
@@ -6590,10 +6601,12 @@ class _DashboardScreenState extends State<DashboardScreen>
 
       if (result != null) {
         String name = result.files.first.name;
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text("Selected: $name"), backgroundColor: Colors.green));
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text("File Picker Error: $e"), backgroundColor: Colors.red));
     }
@@ -6602,9 +6615,9 @@ class _DashboardScreenState extends State<DashboardScreen>
 
 class BlinkingLight extends StatefulWidget {
   final Color color;
-  const BlinkingLight({Key? key, required this.color}) : super(key: key);
+  const BlinkingLight({super.key, required this.color});
   @override
-  _BlinkingLightState createState() => _BlinkingLightState();
+  State<BlinkingLight> createState() => _BlinkingLightState();
 }
 
 class _BlinkingLightState extends State<BlinkingLight>
