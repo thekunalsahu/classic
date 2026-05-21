@@ -287,23 +287,23 @@ class _LandingPageState extends State<LandingPage> {
                 Row(
                   children: [
                     Image.asset("assets/images/logo.png",
-                        height: 48,
+                        height: 44,
                         errorBuilder: (context, error, stackTrace) =>
                             const Icon(Icons.satellite_alt_rounded,
-                                color: Color(0xFF4CFF2F), size: 38)),
-                    const SizedBox(width: 10),
+                                color: Color(0xFF4CFF2F), size: 36)),
+                    const SizedBox(width: 6),
                     const Expanded(
                       child: Text("GravityAI",
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               color: Colors.white,
-                              fontSize: 29,
+                              fontSize: 26,
                               fontWeight: FontWeight.w800)),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     SizedBox(
-                      width: 116,
+                      width: 92,
                       child: _AnimatedLandingButton(
                           key: const ValueKey('landing-public-access-mobile'),
                           label: "Public",
