@@ -265,7 +265,7 @@ class _FeatureHero extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            'GravityAI combines advanced AI, satellite technology & real-time analytics to deliver unmatched accuracy and fast encroachment detection.',
+            'GravityAI combines advanced AI, satellite technology & real-time analytics to deliver unmatched accuracy and fast encroachment detection. Updated 17 July 2026.',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.78),
               fontSize: isMobile ? 15 : 17,

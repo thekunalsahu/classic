@@ -23,7 +23,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Gravity AI Backend")
+app = FastAPI(title="Gravity AI Backend - 17 July 2026")
 
 def _allowed_origins() -> list:
     origins = os.getenv("ALLOWED_ORIGINS", "*")
@@ -46,7 +46,11 @@ GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 @app.get("/")
 async def root():
-    return {"status": "success", "message": "Gravity AI Backend is Live!"}
+    return {
+        "status": "success",
+        "message": "Gravity AI Backend is Live!",
+        "updated": "17 July 2026",
+    }
 
 class ScanRequest(BaseModel):
     lat: float
@@ -466,6 +470,7 @@ async def chat(request: ChatRequest):
                         "role": "system",
                         "content": (
                             "You are Gravity AI, a geospatial intelligence assistant "
+                            "updated on 17 July 2026 "
                             "for ISRO Bhuvan platform. Help users with encroachment "
                             "detection, land mapping, and administrative tasks. Be "
                             "professional, concise, and futuristic."
@@ -504,7 +509,7 @@ async def vision(request: VisionRequest):
                     {
                         "role": "system",
                         "content": (
-                            "You are Gravity AI, a geospatial intelligence assistant. "
+                            "You are Gravity AI, a geospatial intelligence assistant updated on 17 July 2026. "
                             "Analyze images for unauthorized construction, encroachment, "
                             "land-use anomalies, vegetation loss, and building patterns."
                         ),
