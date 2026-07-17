@@ -27,6 +27,36 @@ const bool kAllowLocalBackendFallback =
 const String kEarthImg = "assets/images/background.png";
 const String kLandingReferenceImg = "assets/images/landing_reference.png";
 
+List<String> backendEndpoints(String path) => [
+      '$kBackendUrl$path',
+      if (kAllowLocalBackendFallback) 'http://127.0.0.1:5000$path',
+      if (kAllowLocalBackendFallback) 'http://localhost:5000$path',
+    ];
+
+Future<http.Response> postBackendJson(
+  String path,
+  String body, {
+  Duration timeout = const Duration(seconds: 30),
+}) async {
+  Object? lastError;
+  final endpoints = backendEndpoints(path);
+  for (final endpoint in endpoints) {
+    try {
+      final response = await http
+          .post(Uri.parse(endpoint),
+              headers: {'Content-Type': 'application/json'}, body: body)
+          .timeout(timeout);
+      if (response.statusCode < 500 || endpoint == endpoints.last) {
+        return response;
+      }
+      lastError = "HTTP ${response.statusCode}: ${response.body}";
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw Exception(lastError ?? 'Backend request failed');
+}
+
 class BhuPrahariStore {
   static final ValueNotifier<List<Map<String, dynamic>>> complaints =
       ValueNotifier<List<Map<String, dynamic>>>([]);
@@ -2602,29 +2632,21 @@ class _DashboardScreenState extends State<DashboardScreen>
       "current_layer": _forestLayer,
       "previous_layer": _forestPreviousLayer,
     });
-    final endpoints = [
-      '$kBackendUrl/api/forest_scan',
-      if (kAllowLocalBackendFallback) 'http://127.0.0.1:5000/api/forest_scan',
-      if (kAllowLocalBackendFallback) 'http://localhost:5000/api/forest_scan',
-    ];
-
     Object? lastError;
-    for (final endpoint in endpoints) {
-      try {
-        final response = await http
-            .post(Uri.parse(endpoint),
-                headers: {'Content-Type': 'application/json'}, body: body)
-            .timeout(const Duration(seconds: 45));
-        if (response.statusCode != 200) {
-          lastError = "HTTP ${response.statusCode}: ${response.body}";
-          continue;
-        }
+    try {
+      final response = await postBackendJson(
+        "/api/forest_scan",
+        body,
+        timeout: const Duration(seconds: 45),
+      );
+      if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         _applyForestScanResult(data);
         return;
-      } catch (e) {
-        lastError = e;
       }
+      lastError = "HTTP ${response.statusCode}: ${response.body}";
+    } catch (e) {
+      lastError = e;
     }
 
     if (!mounted) return;
@@ -6479,12 +6501,9 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Future<void> _getGroqResponse(String userMsg, Function setModalState) async {
     try {
-      final response = await http.post(
-        Uri.parse("$kBackendUrl/api/chat"),
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({
+      final response = await postBackendJson(
+        "/api/chat",
+        jsonEncode({
           "message": userMsg,
         }),
       );
@@ -6497,10 +6516,15 @@ class _DashboardScreenState extends State<DashboardScreen>
           _chatMsgs.add({"role": "ai", "text": aiMsg});
         });
       } else {
+        String detail = response.body;
+        try {
+          final data = jsonDecode(response.body);
+          detail = data['detail']?.toString() ?? detail;
+        } catch (_) {}
         setModalState(() {
           _chatMsgs.add({
             "role": "ai",
-            "text": "Error from Groq: ${response.statusCode}"
+            "text": "Backend error (${response.statusCode}): $detail"
           });
         });
       }
@@ -6528,19 +6552,15 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (imageName.toLowerCase().endsWith('.png')) mimeType = 'image/png';
       if (imageName.toLowerCase().endsWith('.webp')) mimeType = 'image/webp';
 
-      final response = await http
-          .post(
-            Uri.parse("$kBackendUrl/api/vision"),
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: jsonEncode({
-              "image_base64": base64Image,
-              "image_name": imageName,
-              "mime_type": mimeType,
-            }),
-          )
-          .timeout(const Duration(seconds: 30));
+      final response = await postBackendJson(
+        "/api/vision",
+        jsonEncode({
+          "image_base64": base64Image,
+          "image_name": imageName,
+          "mime_type": mimeType,
+        }),
+        timeout: const Duration(seconds: 30),
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
