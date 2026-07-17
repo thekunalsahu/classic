@@ -25,7 +25,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Gravity AI Backend - 17 July 2026")
+app = FastAPI(title="Gravity AI Backend")
 
 def _allowed_origins() -> list:
     origins = os.getenv("ALLOWED_ORIGINS", "*")
@@ -46,8 +46,8 @@ app.add_middleware(
 GROQ_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 VIASOCKET_WEBHOOK_URL = os.getenv("VIASOCKET_WEBHOOK_URL", "")
-OFFICER_USER_ID = os.getenv("OFFICER_USER_ID", "admin")
-OFFICER_PASSWORD = os.getenv("OFFICER_PASSWORD", "Gravity@2026")
+OFFICER_USER_ID = os.getenv("OFFICER_USER_ID", "")
+OFFICER_PASSWORD = os.getenv("OFFICER_PASSWORD", "")
 STATE_ALERT_EMAIL_MAP = os.getenv("STATE_ALERT_EMAIL_MAP", "{}")
 AUTH_TOKENS: set[str] = set()
 COMPLAINTS: list[dict] = []
@@ -57,7 +57,7 @@ async def root():
     return {
         "status": "success",
         "message": "Gravity AI Backend is Live!",
-        "updated": "17 July 2026",
+        "updated": datetime.now(timezone.utc).date().isoformat(),
     }
 
 class ScanRequest(BaseModel):
@@ -151,6 +151,8 @@ def _require_auth(authorization: str | None) -> str:
 
 @app.post("/api/auth/login")
 async def login(request: AuthRequest):
+    if not OFFICER_USER_ID or not OFFICER_PASSWORD:
+        raise HTTPException(status_code=503, detail="Officer login is not configured")
     if request.user_id.strip() != OFFICER_USER_ID or request.password != OFFICER_PASSWORD:
         raise HTTPException(status_code=401, detail="Invalid user ID or password")
     token = secrets.token_urlsafe(32)
@@ -674,7 +676,7 @@ async def chat(request: ChatRequest):
                         "role": "system",
                         "content": (
                             "You are Gravity AI, a geospatial intelligence assistant "
-                            "updated on 17 July 2026 "
+                            "updated with the latest configured backend context "
                             "for ISRO Bhuvan platform. Help users with encroachment "
                             "detection, land mapping, and administrative tasks. Be "
                             "professional, concise, and futuristic."
@@ -713,7 +715,7 @@ async def vision(request: VisionRequest):
                     {
                         "role": "system",
                         "content": (
-                            "You are Gravity AI, a geospatial intelligence assistant updated on 17 July 2026. "
+                            "You are Gravity AI, a geospatial intelligence assistant. "
                             "Analyze images for unauthorized construction, encroachment, "
                             "land-use anomalies, vegetation loss, and building patterns."
                         ),

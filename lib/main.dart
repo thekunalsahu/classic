@@ -178,7 +178,7 @@ class GravityApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Gravity AI Portal - 17 July 2026',
+      title: 'Gravity AI Portal',
       theme: AppTheme.darkTheme,
       home: const LandingPage(),
     );
@@ -409,7 +409,7 @@ class _LandingPageState extends State<LandingPage> {
                                 color: Color(0xFF4CFF2F), size: 36)),
                     const SizedBox(width: 6),
                     const Expanded(
-                      child: Text("GravityAI | 17 July 2026",
+                      child: Text("GravityAI | Live",
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -443,7 +443,7 @@ class _LandingPageState extends State<LandingPage> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  "GravityAI uses Advanced AI & ISRO BHUVAN satellite imagery to detect unauthorized encroachments in real-time. Updated 17 July 2026.",
+                  "GravityAI uses Advanced AI & ISRO BHUVAN satellite imagery to detect unauthorized encroachments in real-time.",
                   style: TextStyle(
                       color: Colors.white70, fontSize: 16, height: 1.55),
                 ),
@@ -1147,7 +1147,7 @@ class _LoginPageState extends State<LoginPage> {
             Image.asset("assets/images/logo.png", height: isMobile ? 48 : 64),
             const SizedBox(width: 12),
             Flexible(
-              child: Text("GravityAI | 17 July 2026",
+              child: Text("GravityAI | Live",
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -1341,7 +1341,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     {
       "role": "ai",
       "text":
-          "Hello User. I am Gravity AI, updated 17 July 2026. How can I assist you with land administration today?"
+          "Hello User. I am Gravity AI. How can I assist you with land administration today?"
     }
   ];
   bool _isListening = false;
@@ -1997,7 +1997,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 children: [
                   Image.asset("assets/images/logo.png", height: 50),
                   const SizedBox(height: 10),
-                  const Text("Gravity AI\n17 July 2026",
+                  const Text("Gravity AI\nCommand Center",
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -3512,7 +3512,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     onPressed: () => _scaffoldKey.currentState?.openDrawer()),
               Image.asset("assets/images/logo.png", height: isMobile ? 25 : 35),
               const SizedBox(width: 8),
-              Text("Gravity AI | 17 July 2026",
+              Text("Gravity AI | Live",
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: isMobile ? 14 : 18,
@@ -5088,7 +5088,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 ])),
                             const SizedBox(height: 20),
                             const Text(
-                                "This compliance draft is prepared by Gravity AI on 17 July 2026 after a geospatial comparison of registered boundary records, satellite imagery, and field-risk indicators. It is intended for user review before any administrative action.",
+                                "This compliance draft is prepared by Gravity AI after a geospatial comparison of registered boundary records, satellite imagery, and field-risk indicators. It is intended for user review before any administrative action.",
                                 style: TextStyle(
                                     color: Colors.black87,
                                     fontSize: 13,
@@ -5151,7 +5151,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 const Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Text("GRAVITY AI ENGINE | 17 JULY 2026",
+                                    Text("GRAVITY AI ENGINE | LIVE",
                                         style: TextStyle(
                                             color: Colors.black,
                                             fontWeight: FontWeight.w900,
@@ -5210,7 +5210,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                         'Unauthorized construction detected via satellite imagery analysis. '
                                         'Field verification is recommended.\n\n'
                                         'Ref: GRV-AUDIT-449-A\n'
-                                        '_Digitally generated by Gravity AI Engine on 17 July 2026_');
+                                        '_Digitally generated by Gravity AI Engine_');
                                     final waUri = Uri.parse(
                                         'https://wa.me/?text=$noticeText');
                                     try {
@@ -5263,7 +5263,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   onPressed: () async {
                                     Navigator.pop(c);
                                     final smsBody = Uri.encodeComponent(
-                                        'GRAVITY AI NOTICE (17 July 2026): Unauthorized construction detected at ${_searchCtrl.text.toUpperCase()} '
+                                        'GRAVITY AI NOTICE: Unauthorized construction detected at ${_searchCtrl.text.toUpperCase()} '
                                         '(${_loc.latitude.toStringAsFixed(4)}, ${_loc.longitude.toStringAsFixed(4)}). '
                                         'Area: $_area sq.m | Penalty: Rs.${(_fine / 100000).toStringAsFixed(1)}L | Risk: $_risk/100. '
                                         'Ref: GRV-AUDIT-449-A');
@@ -5312,7 +5312,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   onPressed: () async {
                                     Navigator.pop(c);
                                     final subject = Uri.encodeComponent(
-                                        'Gravity AI - Compliance Notice Draft | 17 July 2026 | ${_searchCtrl.text.toUpperCase()}');
+                                        'Gravity AI - Compliance Notice Draft | ${_searchCtrl.text.toUpperCase()}');
                                     final body = Uri.encodeComponent(
                                         'GOVERNMENT OF $_stateName\nDepartment of Land Revenue & Tax Administration\n\n'
                                         'COMPLIANCE NOTICE DRAFT\n'
@@ -5325,7 +5325,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                         'Confidence: ${_accuracy.toStringAsFixed(1)}%\n\n'
                                         '$_notice\n\n'
                                         '---\n'
-                                        'Digitally generated by Gravity AI Engine on 17 July 2026\n'
+                                        'Digitally generated by Gravity AI Engine\n'
                                         'Ref: GRV-AUDIT-449-A');
                                     final uri = Uri.parse(
                                         'mailto:?subject=$subject&body=$body');
@@ -5388,7 +5388,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                         'Estimated Penalty: Rs. ${(_fine / 100000).toStringAsFixed(1)} Lakhs\n'
                                         'Risk Score: $_risk/100\n\n'
                                         '$_notice\n\n'
-                                        'Digitally generated by Gravity AI Engine on 17 July 2026';
+                                        'Digitally generated by Gravity AI Engine';
                                     // Copy using JS clipboard API
                                     try {
                                       evalJs(
@@ -6345,8 +6345,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text(
-                            'Digitally Signed by Gravity AI Engine on 17 July 2026',
+                        pw.Text('Digitally Signed by Gravity AI Engine',
                             style: pw.TextStyle(
                                 fontSize: 8, fontStyle: pw.FontStyle.italic)),
                         pw.Text('Page 1 of 1',
@@ -6376,7 +6375,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           color: const Color(0xFF0B1221),
           child: const Center(
               child: Text(
-                  "Gravity AI - Updated 17 July 2026 - Uses ISRO Bhuvan services - Siam-UNet Neural Networks",
+                  "Gravity AI - Uses ISRO Bhuvan services - Siam-UNet Neural Networks",
                   style: TextStyle(color: Colors.white54, fontSize: 11)))));
   Widget _buildBoot() {
     final percent = (_bootProgress * 100).round().clamp(0, 100);
@@ -6456,7 +6455,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("GravityAI Command Core | 17 July 2026",
+                            Text("GravityAI Command Core | Live",
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 26,

@@ -1,8 +1,8 @@
-# Gravity AI - 17 July 2026
+# Gravity AI
 
 Next-Generation Geospatial Intelligence platform for urban administration.
 
-Updated: 17 July 2026
+Live geospatial intelligence platform for urban administration.
 
 ## Getting Started
 

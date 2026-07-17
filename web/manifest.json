@@ -1,11 +1,11 @@
 {
-    "name": "Gravity AI - 17 July 2026",
+    "name": "Gravity AI",
     "short_name": "Gravity AI",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#020617",
     "theme_color": "#020617",
-    "description": "Next-Generation Geospatial Intelligence platform for urban administration. Updated 17 July 2026.",
+    "description": "Next-Generation Geospatial Intelligence platform for urban administration.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
