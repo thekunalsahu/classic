@@ -541,16 +541,6 @@ def _is_inside_boundary(point_lat, point_lon, boundary_lat, boundary_lon, offset
             boundary_lon - offset <= point_lon <= boundary_lon + offset)
 
 
-def _approx_distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Fast equirectangular distance for local audit thresholds."""
-    ref_lat = math.radians((lat1 + lat2) / 2)
-    meters_per_degree_lat = 111_320
-    meters_per_degree_lon = 111_320 * math.cos(ref_lat)
-    dx = (lon1 - lon2) * meters_per_degree_lon
-    dy = (lat1 - lat2) * meters_per_degree_lat
-    return math.sqrt((dx * dx) + (dy * dy))
-
-
 def _polygon_area_sqm(coords: list) -> float:
     """Approximate small building footprint area in square meters."""
     if len(coords) < 3:
@@ -594,71 +584,96 @@ def _analysis_confidence(building_count: int, encroaching_count: int) -> float:
     return min(92.0, 72.0 + min(building_count, 20))
 
 
-def _encroachment_risk_score(encroaching_count: int, area_sqm: int) -> int:
-    return min(100, int((encroaching_count * 18) + (area_sqm / 120)))
+def _asset_buffer_m(asset_type: str) -> int:
+    kind = (asset_type or "").lower()
+    if kind in {"police", "fire_station", "government"}:
+        return 90
+    if kind in {"hospital", "clinic"}:
+        return 80
+    if kind == "school":
+        return 65
+    return 70
 
 
-def _ml_boundary_risk(features: dict) -> dict:
-    """Lightweight logistic model for hackathon-ready risk scoring.
-
-    The coefficients are intentionally embedded to avoid heavyweight runtime
-    dependencies while still using a model-style feature pipeline.
-    """
-    building_density = min(features["total_buildings"] / 35, 1.0)
-    conflict_density = min(features["encroaching_count"] / 6, 1.0)
-    area_factor = min(features["area_sqm"] / 1800, 1.0)
-    govt_context = 1.0 if features["govt_assets_count"] else 0.0
-    green_signal = min(max(features["green_loss"], 0) / 100, 1.0)
-
-    z = (
-        -2.25
-        + (1.35 * building_density)
-        + (3.4 * conflict_density)
-        + (1.15 * area_factor)
-        + (1.55 * govt_context)
-        + (0.55 * green_signal)
-    )
-    probability = 1 / (1 + math.exp(-z))
-    risk_score = round(probability * 100)
-
-    if risk_score >= 65:
-        label = "High Risk"
-    elif risk_score >= 35:
-        label = "Review Required"
-    else:
-        label = "Low Risk"
-
-    confidence = round(
-        68
-        + min(features["total_buildings"], 25) * 0.6
-        + min(features["govt_assets_count"], 5) * 2.0,
-        1,
-    )
-    return {
-        "model": "GravityAI logistic boundary-risk model v1",
-        "label": label,
-        "probability": round(probability, 4),
-        "risk_score": risk_score,
-        "confidence": min(confidence, 94.0),
-        "features": {
-            "building_density": round(building_density, 3),
-            "conflict_density": round(conflict_density, 3),
-            "area_factor": round(area_factor, 3),
-            "government_context": govt_context,
-            "green_signal": round(green_signal, 3),
-        },
-    }
+def _to_local_xy(lat: float, lon: float, origin_lat: float) -> tuple[float, float]:
+    meters_per_degree_lat = 111_320
+    meters_per_degree_lon = 111_320 * math.cos(math.radians(origin_lat))
+    return lon * meters_per_degree_lon, lat * meters_per_degree_lat
 
 
-def _near_government_context(lat: float, lon: float, govt_assets: list) -> bool:
+def _grid_key(x: float, y: float, cell_size_m: int = 140) -> tuple[int, int]:
+    return int(math.floor(x / cell_size_m)), int(math.floor(y / cell_size_m))
+
+
+def _build_asset_spatial_index(
+    govt_assets: list, origin_lat: float, cell_size_m: int = 140
+) -> dict:
+    grid: dict[tuple[int, int], list[dict]] = {}
     for asset in govt_assets:
         asset_lat = asset.get("lat")
         asset_lon = asset.get("lon")
         if asset_lat is None or asset_lon is None:
             continue
-        if _approx_distance_m(lat, lon, float(asset_lat), float(asset_lon)) <= 45:
-            return True
-    return False
+        x, y = _to_local_xy(float(asset_lat), float(asset_lon), origin_lat)
+        indexed_asset = {
+            **asset,
+            "x": x,
+            "y": y,
+            "buffer_m": _asset_buffer_m(asset.get("type", "")),
+        }
+        grid.setdefault(_grid_key(x, y, cell_size_m), []).append(indexed_asset)
+    return grid
+
+
+def _protected_asset_hits(
+    lat: float,
+    lon: float,
+    asset_grid: dict,
+    origin_lat: float,
+    cell_size_m: int = 140,
+) -> list[dict]:
+    x, y = _to_local_xy(lat, lon, origin_lat)
+    gx, gy = _grid_key(x, y, cell_size_m)
+    hits = []
+    for dx in range(-1, 2):
+        for dy in range(-1, 2):
+            for asset in asset_grid.get((gx + dx, gy + dy), []):
+                distance_m = math.sqrt((x - asset["x"]) ** 2 + (y - asset["y"]) ** 2)
+                if distance_m <= asset["buffer_m"]:
+                    hits.append(
+                        {
+                            "name": asset.get("name", "Unnamed Asset"),
+                            "type": asset.get("type", "Government Asset"),
+                            "distance_m": round(distance_m, 1),
+                            "buffer_m": asset["buffer_m"],
+                        }
+                    )
+    hits.sort(key=lambda item: item["distance_m"])
+    return hits
+
+
+def _dsa_boundary_risk_score(
+    encroaching_count: int,
+    area_sqm: int,
+    total_buildings: int,
+    govt_assets_count: int,
+) -> int:
+    if encroaching_count == 0:
+        return 0
+    density_factor = min(20, int((encroaching_count / max(total_buildings, 1)) * 40))
+    area_factor = min(35, int(area_sqm / 90))
+    asset_factor = min(12, govt_assets_count * 2)
+    return min(100, 22 + (encroaching_count * 9) + density_factor + area_factor + asset_factor)
+
+
+def _dsa_prediction_label(risk_score: int) -> str:
+    if risk_score >= 70:
+        return "High Risk"
+    if risk_score >= 35:
+        return "Review Required"
+    if risk_score > 0:
+        return "Low Conflict"
+    return "No Conflict"
 
 
 def _fetch_govt_assets(lat: float, lon: float, radius: int = 500) -> list:
@@ -1026,19 +1041,20 @@ async def trigger_scan(request: ScanRequest):
     city = request.sector or "Bhopal"
     
     try:
-        # STEP 1: Fetch REAL buildings from OSM
-        buildings_raw = _fetch_osm_buildings(lat, lon, radius=350)
+        analysis_radius_m = 1200
+
+        # STEP 1: Fetch REAL buildings from OSM across a larger audit area.
+        buildings_raw = _fetch_osm_buildings(lat, lon, radius=analysis_radius_m)
         
         # STEP 2: Fetch Government Assets (Schools, Hospitals, etc.)
-        govt_assets = _fetch_govt_assets(lat, lon, radius=600)
+        govt_assets = _fetch_govt_assets(lat, lon, radius=analysis_radius_m)
         
         # STEP 3: Get Environmental Data from Groq
         env_data = _get_groq_env_data(city)
         
-        # STEP 4: Define an audit zone around the searched point. This is only
-        # a visualization aid; conflict prediction still requires nearby
-        # government/protected OSM context to avoid false positives.
-        gov_offset = 0.00055 if govt_assets else 0.00025
+        # STEP 4: Define a large audit zone around the searched point. Prediction
+        # uses a DSA spatial index over protected assets and building centroids.
+        gov_offset = 0.0108
         govt_boundary = [
             {"lat": lat + gov_offset, "lon": lon - gov_offset},
             {"lat": lat + gov_offset, "lon": lon + gov_offset},
@@ -1049,6 +1065,7 @@ async def trigger_scan(request: ScanRequest):
         encroaching = []
         legal = []
         total_encroached_area = 0.0
+        asset_grid = _build_asset_spatial_index(govt_assets, lat)
         
         for b in buildings_raw:
             bcoords = b["coords"]
@@ -1057,11 +1074,11 @@ async def trigger_scan(request: ScanRequest):
             poly = [{"lat": c[0], "lon": c[1]} for c in bcoords]
             
             footprint_area = _polygon_area_sqm(bcoords)
+            protected_hits = _protected_asset_hits(avg_lat, avg_lon, asset_grid, lat)
 
             has_boundary_context = (
-                govt_assets
+                protected_hits
                 and _is_inside_boundary(avg_lat, avg_lon, lat, lon, gov_offset)
-                and _near_government_context(avg_lat, avg_lon, govt_assets)
                 and footprint_area >= 12
             )
 
@@ -1072,6 +1089,7 @@ async def trigger_scan(request: ScanRequest):
                     "type": b["type"],
                     "levels": b["levels"],
                     "area_sqm": round(footprint_area, 1),
+                    "nearest_asset": protected_hits[0],
                 })
             else:
                 legal.append(poly)
@@ -1093,20 +1111,20 @@ async def trigger_scan(request: ScanRequest):
         land_value = round(area_sqm * land_rate_per_sqm, 2)
         penalty = round(land_value * 0.18, 2)
         accuracy_score = _analysis_confidence(total, enc_count)
-        rule_score = _encroachment_risk_score(enc_count, area_sqm)
-        ml_prediction = _ml_boundary_risk(
-            {
-                "total_buildings": total,
-                "encroaching_count": enc_count,
-                "area_sqm": area_sqm,
-                "govt_assets_count": len(govt_assets),
-                "green_loss": env_data.get("risk", 0),
-            }
+        risk_score = _dsa_boundary_risk_score(
+            enc_count, area_sqm, total, len(govt_assets)
         )
-        risk_score = max(rule_score, ml_prediction["risk_score"])
+        dsa_prediction = {
+            "algorithm": "Grid-index protected-buffer DSA",
+            "label": _dsa_prediction_label(risk_score),
+            "risk_score": risk_score,
+            "analysis_radius_m": analysis_radius_m,
+            "protected_assets_indexed": len(govt_assets),
+            "buildings_analyzed": total,
+            "red_boundaries": enc_count,
+            "confidence": accuracy_score,
+        }
         if enc_count == 0:
-            risk_score = 0
-            ml_prediction = {**ml_prediction, "label": "Low Risk", "risk_score": 0}
             warnings.append(
                 "Mapped buildings do not meet the protected-boundary conflict rule. Treat this as no predicted encroachment until cadastral/Bhu-Naksha evidence is supplied."
             )
@@ -1128,7 +1146,7 @@ async def trigger_scan(request: ScanRequest):
                 f"Scan complete for {city}. I found {total} mapped building footprints and flagged {enc_count} possible protected-boundary conflict. "
                 f"The screened conflict area is {area_sqm} square meters. "
                 f"In this vicinity, I also identified the following government assets: {asset_str}. "
-                f"Confidence level is {accuracy_score} percent; field verification is required."
+                f"The DSA risk score is {risk_score} out of 100; field verification is required."
             )
             legal_notice_text = (
                 "Potential protected-boundary conflict detected from mapped building footprints near government/protected context. "
@@ -1138,7 +1156,7 @@ async def trigger_scan(request: ScanRequest):
             voice_summary = (
                 f"Scan complete for {city}. I found {total} mapped building footprints and no protected-boundary conflict was predicted. "
                 f"In this vicinity, I identified {asset_str}. "
-                f"Confidence level is {accuracy_score} percent; continue with field verification for official decisions."
+                f"The DSA risk score is 0 out of 100; continue with field verification for official decisions."
             )
             legal_notice_text = (
                 "No protected-boundary conflict is predicted from available mapped footprints. "
@@ -1155,7 +1173,7 @@ async def trigger_scan(request: ScanRequest):
             "green_loss": env_data.get("risk", 10),
             "penalty": penalty,
             "risk_score": risk_score,
-            "ml_prediction": ml_prediction,
+            "dsa_prediction": dsa_prediction,
             "voice_summary": voice_summary,
             "govt_assets": govt_assets,
             "govt_boundary": govt_boundary,
@@ -1165,7 +1183,7 @@ async def trigger_scan(request: ScanRequest):
             "accuracy": accuracy_score,
             "warnings": warnings,
             "legal_notice_text": legal_notice_text,
-            "method": "OSM building footprints + nearby government/protected context + logistic ML risk scoring + deterministic valuation",
+            "method": "Large-area OSM building footprints + DSA grid-index protected-buffer analysis + deterministic valuation",
         }
     except Exception as e:
         logger.error(f"Scan error: {e}")

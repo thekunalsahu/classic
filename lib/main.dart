@@ -1378,8 +1378,8 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   int _risk = 0, _area = 0, _veg = 0;
   double _val = 0.0, _fine = 0.0, _accuracy = 100.0;
-  String _mlLabel = "Not scanned";
-  double _mlProbability = 0.0;
+  String _dsaLabel = "Not scanned";
+  double _dsaConfidence = 0.0;
   Map<String, dynamic> _envData = {
     "temp": 32,
     "aqi": 145,
@@ -1738,14 +1738,14 @@ class _DashboardScreenState extends State<DashboardScreen>
           _fine = (data['penalty'] ?? 0.0).toDouble();
           _veg = data['green_loss'] ?? 0;
           _accuracy = accuracy;
-          if (data['ml_prediction'] != null) {
-            final ml = Map<String, dynamic>.from(data['ml_prediction']);
-            _mlLabel = ml['label']?.toString() ?? "ML reviewed";
-            _mlProbability =
-                ((ml['probability'] as num?)?.toDouble() ?? 0.0) * 100;
+          if (data['dsa_prediction'] != null) {
+            final dsa = Map<String, dynamic>.from(data['dsa_prediction']);
+            _dsaLabel = dsa['label']?.toString() ?? "DSA reviewed";
+            _dsaConfidence =
+                ((dsa['confidence'] as num?)?.toDouble() ?? accuracy);
           } else {
-            _mlLabel = _risk > 0 ? "Review Required" : "Low Risk";
-            _mlProbability = _risk.toDouble();
+            _dsaLabel = _risk > 0 ? "Review Required" : "No Conflict";
+            _dsaConfidence = accuracy;
           }
           if (data['env_data'] != null) {
             _envData = Map<String, dynamic>.from(data['env_data']);
@@ -1822,8 +1822,8 @@ class _DashboardScreenState extends State<DashboardScreen>
           _fine = 0;
           _veg = 0;
           _accuracy = 0;
-          _mlLabel = "Not scanned";
-          _mlProbability = 0;
+          _dsaLabel = "Not scanned";
+          _dsaConfidence = 0;
           _anomalyPolygons.clear();
           _govtPolygons.clear();
           _status = message.contains("Timeout")
@@ -1849,8 +1849,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     _fine = 0;
     _veg = 0;
     _accuracy = 82.0;
-    _mlLabel = "Low Risk";
-    _mlProbability = 0;
+    _dsaLabel = "No Conflict";
+    _dsaConfidence = 82.0;
     _envData = {"temp": 32, "aqi": 145, "soil": "Alluvial", "moisture": 45};
     _notice =
         "No protected-boundary conflict is predicted from local demo state for $sector. Run a live scan for authoritative screening.";
@@ -3090,7 +3090,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         _publicInfoRow(
             "Detected Area", _ready ? "$_area sq.m" : "Run map search"),
         _publicInfoRow("Risk", _ready ? "$_risk/100" : "Pending"),
-        _publicInfoRow("ML Result", _ready ? _mlLabel : "Pending"),
+        _publicInfoRow("DSA Result", _ready ? _dsaLabel : "Pending"),
         _publicInfoRow(
             "Status", _ready ? "Satellite analysis ready" : "Awaiting search"),
       ]),
@@ -4398,14 +4398,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               _col(
-                                  "ML RESULT",
-                                  _mlLabel,
+                                  "DSA RESULT",
+                                  _dsaLabel,
                                   _risk > 0
                                       ? Colors.amber
                                       : Colors.greenAccent),
                               _col(
-                                  "ML CONF.",
-                                  "${_mlProbability.toStringAsFixed(1)}%",
+                                  "DSA CONF.",
+                                  "${_dsaConfidence.toStringAsFixed(1)}%",
                                   Colors.cyanAccent)
                             ])
                       ]))
