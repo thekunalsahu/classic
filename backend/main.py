@@ -556,23 +556,70 @@ def _polygon_area_sqm(coords: list) -> float:
     return abs(area) / 2
 
 
-def _estimate_land_rate_per_sqm(sector: str, govt_assets_count: int) -> int:
-    """Use a deterministic city-tier rate instead of random pricing."""
+CITY_LAND_PROFILES = {
+    "mhow": {
+        "city": "Mhow",
+        "state": "Madhya Pradesh",
+        "rate_per_sqm": 28000,
+        "rate_basis": "Indicative city baseline; verify exact ward/village in MPIGR SAMPADA.",
+        "source": "MP Registration & Stamps SAMPADA guideline valuation",
+        "source_url": "https://www.mpigr.gov.in/indexEnglish.html",
+    },
+    "indore": {
+        "city": "Indore",
+        "state": "Madhya Pradesh",
+        "rate_per_sqm": 52000,
+        "rate_basis": "Indicative city baseline; Indore guideline rates vary by ward/colony.",
+        "source": "MP Registration & Stamps SAMPADA guideline valuation",
+        "source_url": "https://www.mpigr.gov.in/indexEnglish.html",
+    },
+    "bhopal": {
+        "city": "Bhopal",
+        "state": "Madhya Pradesh",
+        "rate_per_sqm": 42000,
+        "rate_basis": "Indicative city baseline; Bhopal guideline rates vary by ward/colony.",
+        "source": "MP Registration & Stamps SAMPADA guideline valuation",
+        "source_url": "https://www.mpigr.gov.in/indexEnglish.html",
+    },
+    "delhi": {
+        "city": "Delhi",
+        "state": "Delhi",
+        "rate_per_sqm": 246000,
+        "rate_basis": "Indicative Category B/C urban baseline; exact colony category changes the rate.",
+        "source": "Delhi Revenue Department circle-rate notifications",
+        "source_url": "https://revenue.delhi.gov.in/",
+    },
+    "mumbai": {
+        "city": "Mumbai",
+        "state": "Maharashtra",
+        "rate_per_sqm": 250000,
+        "rate_basis": "Indicative Mumbai ASR baseline; exact division/zone changes the rate.",
+        "source": "Maharashtra IGR Annual Statement of Rates/eASR",
+        "source_url": "https://easr.igrmaharashtra.gov.in/",
+    },
+}
+
+
+def _city_land_profile(sector: str) -> dict:
     city = (sector or "").lower()
-    premium_markets = ("delhi", "mumbai", "bangalore", "bengaluru", "gurgaon", "gurugram")
-    tier_one = ("hyderabad", "pune", "chennai", "kolkata", "ahmedabad", "noida")
-    tier_two = ("indore", "bhopal", "jaipur", "lucknow", "nagpur", "surat", "vadodara")
+    for key, profile in CITY_LAND_PROFILES.items():
+        if key in city:
+            return profile
+    return {
+        "city": sector or "Selected location",
+        "state": "India",
+        "rate_per_sqm": 25000,
+        "rate_basis": "Fallback baseline because this city is not in the configured official-rate set.",
+        "source": "Fallback estimate; verify exact guideline/circle/ASR rate on the state portal.",
+        "source_url": "",
+    }
 
-    if any(name in city for name in premium_markets):
-        base_rate = 120_000
-    elif any(name in city for name in tier_one):
-        base_rate = 75_000
-    elif any(name in city for name in tier_two):
-        base_rate = 42_000
-    else:
-        base_rate = 25_000
 
-    infrastructure_modifier = min(govt_assets_count, 5) * 0.03
+def _estimate_land_rate_per_sqm(sector: str, govt_assets_count: int) -> int:
+    """Use configured official-rate baselines with a small infrastructure modifier."""
+    profile = _city_land_profile(sector)
+    base_rate = int(profile["rate_per_sqm"])
+    infrastructure_modifier = min(govt_assets_count, 5) * 0.015
     return round(base_rate * (1 + infrastructure_modifier))
 
 
@@ -652,7 +699,7 @@ def _protected_asset_hits(
     return hits
 
 
-def _dsa_boundary_risk_score(
+def _protected_boundary_score(
     encroaching_count: int,
     area_sqm: int,
     total_buildings: int,
@@ -664,16 +711,6 @@ def _dsa_boundary_risk_score(
     area_factor = min(35, int(area_sqm / 90))
     asset_factor = min(12, govt_assets_count * 2)
     return min(100, 22 + (encroaching_count * 9) + density_factor + area_factor + asset_factor)
-
-
-def _dsa_prediction_label(risk_score: int) -> str:
-    if risk_score >= 70:
-        return "High Risk"
-    if risk_score >= 35:
-        return "Review Required"
-    if risk_score > 0:
-        return "Low Conflict"
-    return "No Conflict"
 
 
 def _fetch_govt_assets(lat: float, lon: float, radius: int = 500) -> list:
@@ -1051,9 +1088,10 @@ async def trigger_scan(request: ScanRequest):
         
         # STEP 3: Get Environmental Data from Groq
         env_data = _get_groq_env_data(city)
+        land_profile = _city_land_profile(city)
         
         # STEP 4: Define a large audit zone around the searched point. Prediction
-        # uses a DSA spatial index over protected assets and building centroids.
+        # uses a spatial index over protected assets and building centroids.
         gov_offset = 0.0108
         govt_boundary = [
             {"lat": lat + gov_offset, "lon": lon - gov_offset},
@@ -1109,28 +1147,27 @@ async def trigger_scan(request: ScanRequest):
         area_sqm = int(round(total_encroached_area))
         land_rate_per_sqm = _estimate_land_rate_per_sqm(city, len(govt_assets))
         land_value = round(area_sqm * land_rate_per_sqm, 2)
-        penalty = round(land_value * 0.18, 2)
         accuracy_score = _analysis_confidence(total, enc_count)
-        risk_score = _dsa_boundary_risk_score(
+        risk_score = _protected_boundary_score(
             enc_count, area_sqm, total, len(govt_assets)
         )
-        dsa_prediction = {
-            "algorithm": "Grid-index protected-buffer DSA",
-            "label": _dsa_prediction_label(risk_score),
-            "risk_score": risk_score,
+        prediction = {
+            "algorithm": "Protected asset buffer + mapped building footprint screening",
+            "label": "Review Required" if enc_count else "No flagged construction",
             "analysis_radius_m": analysis_radius_m,
             "protected_assets_indexed": len(govt_assets),
             "buildings_analyzed": total,
             "red_boundaries": enc_count,
             "confidence": accuracy_score,
+            "official_rate_source": land_profile["source"],
         }
         if enc_count == 0:
             warnings.append(
-                "Mapped buildings do not meet the protected-boundary conflict rule. Treat this as no predicted encroachment until cadastral/Bhu-Naksha evidence is supplied."
+                "Mapped buildings do not meet the protected-boundary rule. Treat this as no predicted encroachment until cadastral/Bhu-Naksha evidence is supplied."
             )
         else:
             warnings.append(
-                "Potential conflict is a screening flag, not a legal conclusion. Field verification and cadastral records are required."
+                "Potential encroachment is a screening flag, not a legal conclusion. Field verification and cadastral records are required."
             )
 
         # Voice Summary Generation
@@ -1143,23 +1180,23 @@ async def trigger_scan(request: ScanRequest):
         
         if enc_count:
             voice_summary = (
-                f"Scan complete for {city}. I found {total} mapped building footprints and flagged {enc_count} possible protected-boundary conflict. "
-                f"The screened conflict area is {area_sqm} square meters. "
+                f"Scan complete for {city}. I found {total} mapped building footprints and flagged {enc_count} possible protected-boundary encroachment. "
+                f"The screened encroachment area is {area_sqm} square meters. "
                 f"In this vicinity, I also identified the following government assets: {asset_str}. "
-                f"The DSA risk score is {risk_score} out of 100; field verification is required."
+                f"The estimated government-rate cost baseline is rupees {int(land_value)}; field verification is required."
             )
             legal_notice_text = (
-                "Potential protected-boundary conflict detected from mapped building footprints near government/protected context. "
+                "Potential protected-boundary encroachment detected from mapped building footprints near government/protected context. "
                 "Verify with cadastral records and field inspection before action."
             )
         else:
             voice_summary = (
-                f"Scan complete for {city}. I found {total} mapped building footprints and no protected-boundary conflict was predicted. "
+                f"Scan complete for {city}. I found {total} mapped building footprints and no protected-boundary encroachment was predicted. "
                 f"In this vicinity, I identified {asset_str}. "
-                f"The DSA risk score is 0 out of 100; continue with field verification for official decisions."
+                f"The government-rate source has been attached for official valuation checks."
             )
             legal_notice_text = (
-                "No protected-boundary conflict is predicted from available mapped footprints. "
+                "No protected-boundary encroachment is predicted from available mapped footprints. "
                 "Use cadastral records, owner documents, and field inspection before administrative action."
             )
 
@@ -1170,10 +1207,15 @@ async def trigger_scan(request: ScanRequest):
             "area_sqm": area_sqm,
             "land_value": land_value,
             "land_rate_per_sqm": land_rate_per_sqm,
+            "cost_estimate": land_value,
+            "official_land_data": {
+                **land_profile,
+                "applied_rate_per_sqm": land_rate_per_sqm,
+                "estimated_cost": land_value,
+            },
             "green_loss": env_data.get("risk", 10),
-            "penalty": penalty,
             "risk_score": risk_score,
-            "dsa_prediction": dsa_prediction,
+            "prediction": prediction,
             "voice_summary": voice_summary,
             "govt_assets": govt_assets,
             "govt_boundary": govt_boundary,
@@ -1183,7 +1225,7 @@ async def trigger_scan(request: ScanRequest):
             "accuracy": accuracy_score,
             "warnings": warnings,
             "legal_notice_text": legal_notice_text,
-            "method": "Large-area OSM building footprints + DSA grid-index protected-buffer analysis + deterministic valuation",
+            "method": "Large-area OSM building footprints + protected asset buffer screening + official-rate baseline valuation",
         }
     except Exception as e:
         logger.error(f"Scan error: {e}")

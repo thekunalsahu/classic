@@ -1375,11 +1375,14 @@ class _DashboardScreenState extends State<DashboardScreen>
   double _currentZoom = 13.0;
   final List<Polygon> _anomalyPolygons = [];
   final List<Polygon> _govtPolygons = [];
+  final List<Marker> _illegalHouseMarkers = [];
 
   int _risk = 0, _area = 0, _veg = 0;
-  double _val = 0.0, _fine = 0.0, _accuracy = 100.0;
-  String _dsaLabel = "Not scanned";
-  double _dsaConfidence = 0.0;
+  double _val = 0.0, _accuracy = 100.0;
+  double _landRate = 0.0;
+  String _officialLandSource =
+      "Official land-rate source will appear after scan";
+  String _predictionLabel = "Not scanned";
   Map<String, dynamic> _envData = {
     "temp": 32,
     "aqi": 145,
@@ -1657,6 +1660,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         _status = "CONNECTING TO SATELLITE LAYERS...";
         _anomalyPolygons.clear();
         _govtPolygons.clear();
+        _illegalHouseMarkers.clear();
       });
     }
 
@@ -1719,6 +1723,35 @@ class _DashboardScreenState extends State<DashboardScreen>
               .toList();
         }
 
+        LatLng polygonCenter(List<LatLng> points) {
+          final lat = points.map((p) => p.latitude).reduce((a, b) => a + b) /
+              points.length;
+          final lon = points.map((p) => p.longitude).reduce((a, b) => a + b) /
+              points.length;
+          return LatLng(lat, lon);
+        }
+
+        Marker illegalHouseMarker(LatLng point) => Marker(
+              point: point,
+              width: 46,
+              height: 46,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.92),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.redAccent.withValues(alpha: 0.55),
+                        blurRadius: 14,
+                        spreadRadius: 2)
+                  ],
+                ),
+                child:
+                    const Icon(Icons.home_work, color: Colors.white, size: 24),
+              ),
+            );
+
         if (!mounted) return;
         setState(() {
           final risk = data['risk_score'] != null
@@ -1730,28 +1763,35 @@ class _DashboardScreenState extends State<DashboardScreen>
           _scanning = false;
           _ready = true;
           _status = risk > 0
-              ? "POTENTIAL CONFLICT FLAGGED - ${accuracy.toStringAsFixed(1)}% CONFIDENCE"
-              : "NO PROTECTED CONFLICT PREDICTED - ${accuracy.toStringAsFixed(1)}% CONFIDENCE";
+              ? "POTENTIAL ENCROACHMENT FLAGGED - ${accuracy.toStringAsFixed(1)}% CONFIDENCE"
+              : "NO PROTECTED ENCROACHMENT PREDICTED - ${accuracy.toStringAsFixed(1)}% CONFIDENCE";
           _risk = risk;
           _area = data['area_sqm'] ?? 0;
-          _val = (data['land_value'] ?? 0.0).toDouble();
-          _fine = (data['penalty'] ?? 0.0).toDouble();
+          _val =
+              (data['cost_estimate'] ?? data['land_value'] ?? 0.0).toDouble();
           _veg = data['green_loss'] ?? 0;
           _accuracy = accuracy;
-          if (data['dsa_prediction'] != null) {
-            final dsa = Map<String, dynamic>.from(data['dsa_prediction']);
-            _dsaLabel = dsa['label']?.toString() ?? "DSA reviewed";
-            _dsaConfidence =
-                ((dsa['confidence'] as num?)?.toDouble() ?? accuracy);
+          if (data['official_land_data'] != null) {
+            final official =
+                Map<String, dynamic>.from(data['official_land_data']);
+            _landRate =
+                ((official['applied_rate_per_sqm'] as num?)?.toDouble() ?? 0);
+            _officialLandSource =
+                official['source']?.toString() ?? "Official land-rate source";
+          }
+          if (data['prediction'] != null) {
+            final prediction = Map<String, dynamic>.from(data['prediction']);
+            _predictionLabel =
+                prediction['label']?.toString() ?? "Prediction ready";
           } else {
-            _dsaLabel = _risk > 0 ? "Review Required" : "No Conflict";
-            _dsaConfidence = accuracy;
+            _predictionLabel =
+                _risk > 0 ? "Review Required" : "No flagged construction";
           }
           if (data['env_data'] != null) {
             _envData = Map<String, dynamic>.from(data['env_data']);
           }
           _notice = data['legal_notice_text'] ??
-              "No protected-boundary conflict is predicted from currently mapped data. Field verification is recommended for official closure.";
+              "No protected-boundary encroachment is predicted from currently mapped data. Field verification is recommended for official closure.";
 
           String voiceSum = data['voice_summary'] ?? "Scan complete.";
           _speak(voiceSum);
@@ -1760,8 +1800,8 @@ class _DashboardScreenState extends State<DashboardScreen>
           if (data['govt_boundary'] != null) {
             _govtPolygons.add(Polygon(
                 points: parsePoly(data['govt_boundary']),
-                color: Colors.blue.withValues(alpha: 0.12),
-                borderColor: Colors.blueAccent,
+                color: Colors.red.withValues(alpha: 0.08),
+                borderColor: Colors.redAccent,
                 borderStrokeWidth: 4,
                 isFilled: true));
           }
@@ -1777,34 +1817,26 @@ class _DashboardScreenState extends State<DashboardScreen>
                     borderColor: Colors.redAccent,
                     borderStrokeWidth: 2,
                     isFilled: true));
+                _illegalHouseMarkers
+                    .add(illegalHouseMarker(polygonCenter(pts)));
               }
             }
           }
 
           // Legal Buildings (outside Govt land) — GREEN
-          if (data['legal_buildings'] != null) {
-            for (var building in data['legal_buildings']) {
-              var pts = parsePoly(building);
-              if (pts.length >= 3) {
-                _govtPolygons.add(Polygon(
-                    points: pts,
-                    color: Colors.green.withValues(alpha: 0.2),
-                    borderColor: Colors.greenAccent,
-                    borderStrokeWidth: 1,
-                    isFilled: true));
-              }
-            }
-          }
-
           // Fallback for old-style anomaly_polygon
           if (data['anomaly_polygon'] != null &&
               data['encroaching_buildings'] == null) {
+            final pts = parsePoly(data['anomaly_polygon']);
             _anomalyPolygons.add(Polygon(
-                points: parsePoly(data['anomaly_polygon']),
+                points: pts,
                 color: Colors.red.withValues(alpha: 0.4),
                 borderColor: Colors.redAccent,
                 borderStrokeWidth: 3,
                 isFilled: true));
+            if (pts.length >= 3) {
+              _illegalHouseMarkers.add(illegalHouseMarker(polygonCenter(pts)));
+            }
           }
         });
       } else {
@@ -1819,13 +1851,11 @@ class _DashboardScreenState extends State<DashboardScreen>
           _risk = 0;
           _area = 0;
           _val = 0;
-          _fine = 0;
           _veg = 0;
           _accuracy = 0;
-          _dsaLabel = "Not scanned";
-          _dsaConfidence = 0;
           _anomalyPolygons.clear();
           _govtPolygons.clear();
+          _illegalHouseMarkers.clear();
           _status = message.contains("Timeout")
               ? "TIMEOUT: SERVER TOOK TOO LONG"
               : "ERROR: $e";
@@ -1846,16 +1876,17 @@ class _DashboardScreenState extends State<DashboardScreen>
     _risk = 0;
     _area = 0;
     _val = 0;
-    _fine = 0;
     _veg = 0;
     _accuracy = 82.0;
-    _dsaLabel = "No Conflict";
-    _dsaConfidence = 82.0;
+    _landRate = 0;
+    _officialLandSource =
+        "Official land-rate source will appear after live scan";
+    _predictionLabel = "No flagged construction";
     _envData = {"temp": 32, "aqi": 145, "soil": "Alluvial", "moisture": 45};
     _notice =
-        "No protected-boundary conflict is predicted from local demo state for $sector. Run a live scan for authoritative screening.";
+        "No protected-boundary encroachment is predicted from local demo state for $sector. Run a live scan for authoritative screening.";
     _status = fallbackReason == null
-        ? "NO PROTECTED CONFLICT PREDICTED - DEMO AUDIT READY"
+        ? "NO PROTECTED ENCROACHMENT PREDICTED - DEMO AUDIT READY"
         : "NEUTRAL DEMO AUDIT READY - BACKEND FALLBACK";
     _govtPolygons
       ..clear()
@@ -1866,11 +1897,12 @@ class _DashboardScreenState extends State<DashboardScreen>
             LatLng(center.latitude + delta, center.longitude + delta),
             LatLng(center.latitude + delta, center.longitude - delta),
           ],
-          color: Colors.blue.withValues(alpha: 0.12),
-          borderColor: Colors.blueAccent,
+          color: Colors.red.withValues(alpha: 0.08),
+          borderColor: Colors.redAccent,
           borderStrokeWidth: 3,
           isFilled: true));
     _anomalyPolygons.clear();
+    _illegalHouseMarkers.clear();
   }
 
   Future<void> _loadOfficerComplaints() async {
@@ -2158,12 +2190,20 @@ class _DashboardScreenState extends State<DashboardScreen>
             "${_loc.latitude.toStringAsFixed(4)}, ${_loc.longitude.toStringAsFixed(4)}"
       },
       {
-        "label": "Risk Score",
-        "value": hasAnalysis ? "$_risk/100" : "72/100 demo"
-      },
-      {
         "label": "Detected Area",
         "value": hasAnalysis ? "$_area sq.m" : "4250 sq.m demo"
+      },
+      {
+        "label": "Estimated Govt Cost",
+        "value": hasAnalysis && _val > 0
+            ? "Rs. ${(_val / 100000).toStringAsFixed(1)} L"
+            : "Awaiting scan"
+      },
+      {
+        "label": "Govt Rate",
+        "value": hasAnalysis && _landRate > 0
+            ? "Rs. ${_landRate.toStringAsFixed(0)}/sqm"
+            : "Official source pending"
       },
       {
         "label": "Confidence",
@@ -2202,7 +2242,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           fontWeight: FontWeight.bold)),
                   SizedBox(height: 4),
                   Text(
-                      "Compliance dossier preview with evidence, risk score, and action trail.",
+                      "Compliance dossier preview with evidence, official-rate estimate, and action trail.",
                       style: TextStyle(color: Colors.white54, fontSize: 12)),
                 ],
               ),
@@ -3089,8 +3129,19 @@ class _DashboardScreenState extends State<DashboardScreen>
             "${_loc.latitude.toStringAsFixed(5)}, ${_loc.longitude.toStringAsFixed(5)}"),
         _publicInfoRow(
             "Detected Area", _ready ? "$_area sq.m" : "Run map search"),
-        _publicInfoRow("Risk", _ready ? "$_risk/100" : "Pending"),
-        _publicInfoRow("DSA Result", _ready ? _dsaLabel : "Pending"),
+        _publicInfoRow(
+            "Estimated Govt Cost",
+            _ready && _val > 0
+                ? "Rs. ${(_val / 100000).toStringAsFixed(1)} L"
+                : "Pending"),
+        _publicInfoRow(
+            "Govt Rate",
+            _ready && _landRate > 0
+                ? "Rs. ${_landRate.toStringAsFixed(0)}/sqm"
+                : "Pending"),
+        _publicInfoRow("Prediction", _ready ? _predictionLabel : "Pending"),
+        _publicInfoRow(
+            "Source", _ready ? _officialLandSource : "Awaiting search"),
         _publicInfoRow(
             "Status", _ready ? "Satellite analysis ready" : "Awaiting search"),
       ]),
@@ -3845,6 +3896,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ),
                       PolygonLayer(polygons: _govtPolygons),
                       PolygonLayer(polygons: _anomalyPolygons),
+                      MarkerLayer(markers: _illegalHouseMarkers),
                       if (widget.isOfficer && _showForestWatch) ...[
                         PolygonLayer(polygons: _forestWatchPolygons()),
                         MarkerLayer(markers: _forestWatchMarkers()),
@@ -4367,6 +4419,18 @@ class _DashboardScreenState extends State<DashboardScreen>
                       curve: Curves.easeOutCubic,
                       delay: 200.ms)
                   .slideY(begin: 0.2, end: 0),
+              _stat(
+                      "Estimated Govt Cost",
+                      _val > 0
+                          ? "Rs. ${(_val / 100000).toStringAsFixed(1)} L"
+                          : "No flagged cost",
+                      Colors.greenAccent)
+                  .animate()
+                  .fadeIn(
+                      duration: 600.ms,
+                      curve: Curves.easeOutCubic,
+                      delay: 250.ms)
+                  .slideY(begin: 0.2, end: 0),
               Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
@@ -4377,36 +4441,19 @@ class _DashboardScreenState extends State<DashboardScreen>
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               _col(
-                                  "EST. VALUE",
-                                  "Rs. ${(_val / 10000000).toStringAsFixed(2)} Cr",
+                                  "GOVT RATE",
+                                  "Rs. ${_landRate.toStringAsFixed(0)}/sqm",
                                   Colors.greenAccent),
-                              _col(
-                                  "PENALTY",
-                                  "Rs. ${(_fine / 100000).toStringAsFixed(1)} L",
-                                  Colors.redAccent)
+                              _col("PREDICTION", _predictionLabel,
+                                  Colors.cyanAccent)
                             ]),
                         const Divider(color: Colors.white24, height: 20),
                         Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              _col("RISK SCORE", "$_risk/100",
+                              _col("SOURCE", _officialLandSource,
                                   Colors.orangeAccent),
-                              _col("ECOLOGY LOSS", "-$_veg%", Colors.lightGreen)
-                            ]),
-                        const SizedBox(height: 12),
-                        Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _col(
-                                  "DSA RESULT",
-                                  _dsaLabel,
-                                  _risk > 0
-                                      ? Colors.amber
-                                      : Colors.greenAccent),
-                              _col(
-                                  "DSA CONF.",
-                                  "${_dsaConfidence.toStringAsFixed(1)}%",
-                                  Colors.cyanAccent)
+                              _col("ECOLOGY", "-$_veg%", Colors.lightGreen)
                             ])
                       ]))
                   .animate()
@@ -4429,8 +4476,8 @@ class _DashboardScreenState extends State<DashboardScreen>
               const SizedBox(height: 10),
               Text(
                   _risk > 0
-                      ? "Protected-boundary screening: potential conflict flagged for field verification."
-                      : "Protected-boundary screening: no conflict predicted from mapped data.",
+                      ? "Protected-boundary screening: potential encroachment flagged for field verification."
+                      : "Protected-boundary screening: no encroachment predicted from mapped data.",
                   style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 11)),
@@ -5173,13 +5220,19 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _showNotice() {
-    final hasConflict = _risk > 0;
-    final findingSentence = hasConflict
-        ? "Potential protected-boundary conflict has been flagged and requires field verification."
-        : "No protected-boundary conflict is predicted from the currently mapped data.";
-    final dispatchFinding = hasConflict
-        ? "Potential protected-boundary conflict flagged via satellite and OSM screening. Field verification is recommended."
-        : "No protected-boundary conflict is predicted from mapped screening data. Field verification may still be used for official closure.";
+    final hasFlaggedEncroachment = _risk > 0;
+    final findingSentence = hasFlaggedEncroachment
+        ? "Potential protected-boundary encroachment has been flagged and requires field verification."
+        : "No protected-boundary encroachment is predicted from the currently mapped data.";
+    final dispatchFinding = hasFlaggedEncroachment
+        ? "Potential protected-boundary encroachment flagged via satellite and OSM screening. Field verification is recommended."
+        : "No protected-boundary encroachment is predicted from mapped screening data. Field verification may still be used for official closure.";
+    final costLabel = _val > 0
+        ? "Rs. ${(_val / 100000).toStringAsFixed(1)} Lakhs"
+        : "No flagged cost";
+    final rateLabel = _landRate > 0
+        ? "Rs. ${_landRate.toStringAsFixed(0)}/sqm"
+        : "Official rate pending";
     try {
       showDialog(
           context: context,
@@ -5266,12 +5319,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     children: [
                                   TextSpan(
                                       text:
-                                          "$findingSentence Screened area: $_area sq.m. Estimated exposure: "),
+                                          "$findingSentence Screened area: $_area sq.m. Estimated government-rate cost: "),
                                   TextSpan(
-                                      text:
-                                          "INR ${(_fine / 100000).toStringAsFixed(1)} Lakhs",
+                                      text: costLabel,
                                       style: TextStyle(
-                                          color: hasConflict
+                                          color: hasFlaggedEncroachment
                                               ? Colors.red[400]
                                               : Colors.green[700],
                                           fontWeight: FontWeight.bold)),
@@ -5371,8 +5423,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                                         '*Sector:* ${_searchCtrl.text.toUpperCase()}\n'
                                         '*Coordinates:* ${_loc.latitude.toStringAsFixed(4)}, ${_loc.longitude.toStringAsFixed(4)}\n'
                                         '*Detected Area:* $_area sq.m\n'
-                                        '*Estimated Penalty:* Rs. ${(_fine / 100000).toStringAsFixed(1)} Lakhs\n'
-                                        '*Risk Score:* $_risk/100\n\n'
+                                        '*Estimated Govt Cost:* $costLabel\n'
+                                        '*Govt Rate:* $rateLabel\n'
+                                        '*Source:* $_officialLandSource\n\n'
                                         '$dispatchFinding\n\n'
                                         'Ref: GRV-AUDIT-449-A\n'
                                         '_Digitally generated by Gravity AI Engine_');
@@ -5428,9 +5481,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   onPressed: () async {
                                     Navigator.pop(c);
                                     final smsBody = Uri.encodeComponent(
-                                        'GRAVITY AI NOTICE: ${hasConflict ? 'Potential protected-boundary conflict flagged' : 'No protected-boundary conflict predicted'} at ${_searchCtrl.text.toUpperCase()} '
+                                        'GRAVITY AI NOTICE: ${hasFlaggedEncroachment ? 'Potential protected-boundary encroachment flagged' : 'No protected-boundary encroachment predicted'} at ${_searchCtrl.text.toUpperCase()} '
                                         '(${_loc.latitude.toStringAsFixed(4)}, ${_loc.longitude.toStringAsFixed(4)}). '
-                                        'Area: $_area sq.m | Penalty: Rs.${(_fine / 100000).toStringAsFixed(1)}L | Risk: $_risk/100. '
+                                        'Area: $_area sq.m | Govt cost: $costLabel | Rate: $rateLabel. '
                                         'Ref: GRV-AUDIT-449-A');
                                     final smsUri =
                                         Uri.parse('sms:?body=$smsBody');
@@ -5485,8 +5538,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                                         'Sector: ${_searchCtrl.text.toUpperCase()}\n'
                                         'Coordinates: ${_loc.latitude.toStringAsFixed(4)}, ${_loc.longitude.toStringAsFixed(4)}\n'
                                         'Detected Area: $_area sq.m\n'
-                                        'Estimated Penalty: Rs. ${(_fine / 100000).toStringAsFixed(1)} Lakhs\n'
-                                        'Risk Score: $_risk/100\n'
+                                        'Estimated Govt Cost: $costLabel\n'
+                                        'Govt Rate: $rateLabel\n'
+                                        'Source: $_officialLandSource\n'
                                         'Confidence: ${_accuracy.toStringAsFixed(1)}%\n\n'
                                         '$_notice\n\n'
                                         '---\n'
@@ -5550,8 +5604,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                                         'Sector: ${_searchCtrl.text.toUpperCase()}\n'
                                         'Coordinates: ${_loc.latitude.toStringAsFixed(4)}, ${_loc.longitude.toStringAsFixed(4)}\n'
                                         'Detected Area: $_area sq.m\n'
-                                        'Estimated Penalty: Rs. ${(_fine / 100000).toStringAsFixed(1)} Lakhs\n'
-                                        'Risk Score: $_risk/100\n\n'
+                                        'Estimated Govt Cost: $costLabel\n'
+                                        'Govt Rate: $rateLabel\n'
+                                        'Source: $_officialLandSource\n\n'
                                         '$_notice\n\n'
                                         'Digitally generated by Gravity AI Engine';
                                     // Copy using JS clipboard API
@@ -6338,8 +6393,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                               Expanded(
                                   child: Text(
                                       _risk > 0
-                                          ? "LEFT: Historical imagery | RIGHT: Current imagery with screened conflict zones in red"
-                                          : "LEFT: Historical imagery | RIGHT: Current imagery with no screened conflict zones",
+                                          ? "LEFT: Historical imagery | RIGHT: Current imagery with screened encroachment zones in red"
+                                          : "LEFT: Historical imagery | RIGHT: Current imagery with no screened encroachment zones",
                                       style: TextStyle(
                                           color: Colors.amber
                                               .withValues(alpha: 0.8),
@@ -6422,6 +6477,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     TileLayer(urlTemplate: tileUrl),
                     if (showOverlay) PolygonLayer(polygons: _anomalyPolygons),
                     if (showOverlay) PolygonLayer(polygons: _govtPolygons),
+                    if (showOverlay) MarkerLayer(markers: _illegalHouseMarkers),
                   ]),
             ),
           ),
@@ -6496,7 +6552,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     'Environmental Impact: $_veg% vegetation loss'),
                             pw.Bullet(
                                 text:
-                                    'Estimated Land Value: Rs. ${(_val / 10000000).toStringAsFixed(2)} Cr'),
+                                    'Estimated Govt Cost: Rs. ${(_val / 100000).toStringAsFixed(1)} Lakhs'),
+                            pw.Bullet(
+                                text:
+                                    'Govt Rate: Rs. ${_landRate.toStringAsFixed(0)}/sqm'),
+                            pw.Bullet(text: 'Source: $_officialLandSource'),
                           ])),
                   pw.SizedBox(height: 30),
                   pw.Text('COMPLIANCE NOTICE PREVIEW:',
