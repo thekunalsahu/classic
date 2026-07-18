@@ -2092,10 +2092,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (!mounted) return;
 
     setState(() {
-      if (!_hasSearched || !_ready) {
-        _applyDemoScanState(target);
-      }
-      _hasSearched = true;
       _status = "BHU-PRAHARI COMPLAINT SUBMITTED - $id";
       _citizenStatusCtrl.text = id;
       _citizenComplaintCtrl.clear();
