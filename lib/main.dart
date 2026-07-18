@@ -1378,10 +1378,8 @@ class _DashboardScreenState extends State<DashboardScreen>
   final List<Marker> _illegalHouseMarkers = [];
 
   int _risk = 0, _area = 0, _veg = 0;
-  double _val = 0.0, _accuracy = 100.0;
+  double _val = 0.0, _penalty = 0.0, _totalLiability = 0.0, _accuracy = 100.0;
   double _landRate = 0.0;
-  String _officialLandSource =
-      "Official land-rate source will appear after scan";
   String _predictionLabel = "Not scanned";
   Map<String, dynamic> _envData = {
     "temp": 32,
@@ -1429,7 +1427,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   String _forestPreviousClass = "Not scanned";
   String _forestLayer = "LULC250K_2425";
   String _forestPreviousLayer = "LULC250K_2324";
-  String _forestSource = "ISRO/NRSC Bhuvan LULC 250K WMS";
   int _forestRiskScore = 0;
   int _forestValidSamples = 0;
   int _forestTotalSamples = 0;
@@ -1645,6 +1642,39 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   // --- API FIX: ADDED TIMEOUT AND MOUNTED CHECKS ---
+  Future<void> _useGpsAndScan() async {
+    if (_scanning) return;
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw "Location service is disabled";
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        throw "Location permission denied";
+      }
+      setState(() => _status = "GPS LOCKING CURRENT LOCATION...");
+      final pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      if (!mounted) return;
+      setState(() {
+        _loc = LatLng(pos.latitude, pos.longitude);
+        _searchCtrl.text =
+            "${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}";
+      });
+      _mapCtrl.move(_loc, 18.0);
+      await _runScan();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("GPS error: $e"), backgroundColor: Colors.orange));
+    }
+  }
+
   Future<void> _runScan() async {
     String query = _searchCtrl.text.trim();
     if (query.isEmpty) return;
@@ -1769,15 +1799,19 @@ class _DashboardScreenState extends State<DashboardScreen>
           _area = data['area_sqm'] ?? 0;
           _val =
               (data['cost_estimate'] ?? data['land_value'] ?? 0.0).toDouble();
+          _penalty = (data['penalty_estimate'] ?? 0.0).toDouble();
+          _totalLiability =
+              (data['total_liability'] ?? (_val + _penalty)).toDouble();
           _veg = data['green_loss'] ?? 0;
           _accuracy = accuracy;
           if (data['official_land_data'] != null) {
             final official =
                 Map<String, dynamic>.from(data['official_land_data']);
             _landRate =
-                ((official['applied_rate_per_sqm'] as num?)?.toDouble() ?? 0);
-            _officialLandSource =
-                official['source']?.toString() ?? "Official land-rate source";
+                ((official['applied_rate_per_sqm'] as num?)?.toDouble() ??
+                    ((_area > 0 && _val > 0) ? _val / _area : 25000));
+          } else {
+            _landRate = (_area > 0 && _val > 0) ? _val / _area : 25000;
           }
           if (data['prediction'] != null) {
             final prediction = Map<String, dynamic>.from(data['prediction']);
@@ -1876,11 +1910,11 @@ class _DashboardScreenState extends State<DashboardScreen>
     _risk = 0;
     _area = 0;
     _val = 0;
+    _penalty = 0;
+    _totalLiability = 0;
     _veg = 0;
     _accuracy = 82.0;
-    _landRate = 0;
-    _officialLandSource =
-        "Official land-rate source will appear after live scan";
+    _landRate = 25000;
     _predictionLabel = "Manual Land Review";
     _envData = {"temp": 32, "aqi": 145, "soil": "Alluvial", "moisture": 45};
     _notice =
@@ -2200,10 +2234,16 @@ class _DashboardScreenState extends State<DashboardScreen>
             : "Awaiting scan"
       },
       {
+        "label": "Penalty Estimate",
+        "value": hasAnalysis && _penalty > 0
+            ? "Rs. ${(_penalty / 100000).toStringAsFixed(1)} L"
+            : "Calculated after scan"
+      },
+      {
         "label": "Govt Rate",
         "value": hasAnalysis && _landRate > 0
             ? "Rs. ${_landRate.toStringAsFixed(0)}/sqm"
-            : "Official source pending"
+            : "Rs. 25000/sqm demo"
       },
       {
         "label": "Confidence",
@@ -2723,6 +2763,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           _forestInfoRow("Current LULC", _forestCurrentClass),
           _forestInfoRow("Previous LULC", _forestPreviousClass),
           _forestInfoRow("Layer", _forestLayer),
+          _forestInfoRow("Risk Score", "$_forestRiskScore/100"),
           _forestInfoRow(
               "Samples", "$_forestValidSamples/$_forestTotalSamples valid"),
           _forestInfoRow(
@@ -2738,7 +2779,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     color: Colors.greenAccent.withValues(alpha: 0.22))),
             child: Text(
               _forestReady
-                  ? "Live result from $_forestSource. Classes are sampled from Bhuvan LULC WMS GetFeatureInfo around the selected coordinate."
+                  ? "Forest risk score: $_forestRiskScore/100. Classes are sampled around the selected coordinate for hackathon-ready field triage."
                   : _forestStatus,
               style: const TextStyle(
                   color: Colors.white70, fontSize: 12, height: 1.45),
@@ -2988,7 +3029,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       _forestReady = true;
       _showForestWatch = true;
       _hasSearched = true;
-      _forestSource = data['source']?.toString() ?? _forestSource;
       _forestLayer = data['current_layer']?.toString() ?? _forestLayer;
       _forestPreviousLayer =
           data['previous_layer']?.toString() ?? _forestPreviousLayer;
@@ -3141,7 +3181,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                 : "Pending"),
         _publicInfoRow("Prediction", _ready ? _predictionLabel : "Pending"),
         _publicInfoRow(
-            "Source", _ready ? _officialLandSource : "Awaiting search"),
+            "Penalty",
+            _ready && _penalty > 0
+                ? "Rs. ${(_penalty / 100000).toStringAsFixed(1)} L"
+                : "Awaiting search"),
         _publicInfoRow(
             "Status", _ready ? "Satellite analysis ready" : "Awaiting search"),
       ]),
@@ -3938,6 +3981,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     EdgeInsets.symmetric(horizontal: 12)),
                             onSubmitted: (_) => _scanning ? null : _runScan())),
                     IconButton(
+                        tooltip: "Use GPS",
+                        icon: const Icon(Icons.my_location_rounded,
+                            color: Colors.lightBlueAccent, size: 20),
+                        onPressed: _scanning ? null : _useGpsAndScan),
+                    IconButton(
                         icon: _scanning
                             ? const SizedBox(
                                 width: 18,
@@ -4430,6 +4478,18 @@ class _DashboardScreenState extends State<DashboardScreen>
                       duration: 600.ms,
                       curve: Curves.easeOutCubic,
                       delay: 250.ms)
+                   .slideY(begin: 0.2, end: 0),
+              _stat(
+                      "Penalty Estimate",
+                      _penalty > 0
+                          ? "Rs. ${(_penalty / 100000).toStringAsFixed(1)} L"
+                          : "Review pending",
+                      Colors.orangeAccent)
+                  .animate()
+                  .fadeIn(
+                      duration: 600.ms,
+                      curve: Curves.easeOutCubic,
+                      delay: 280.ms)
                   .slideY(begin: 0.2, end: 0),
               Container(
                       padding: const EdgeInsets.all(10),
@@ -4451,7 +4511,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                         Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              _col("SOURCE", _officialLandSource,
+                              _col("PENALTY",
+                                  _penalty > 0
+                                      ? "Rs. ${(_penalty / 100000).toStringAsFixed(1)} L"
+                                      : "Pending",
                                   Colors.orangeAccent),
                               _col("ECOLOGY", "-$_veg%", Colors.lightGreen)
                             ])
@@ -5230,6 +5293,12 @@ class _DashboardScreenState extends State<DashboardScreen>
     final costLabel = _val > 0
         ? "Rs. ${(_val / 100000).toStringAsFixed(1)} Lakhs"
         : "Review pending";
+    final penaltyLabel = _penalty > 0
+        ? "Rs. ${(_penalty / 100000).toStringAsFixed(1)} Lakhs"
+        : "Review pending";
+    final liabilityLabel = _totalLiability > 0
+        ? "Rs. ${(_totalLiability / 100000).toStringAsFixed(1)} Lakhs"
+        : costLabel;
     final rateLabel = _landRate > 0
         ? "Rs. ${_landRate.toStringAsFixed(0)}/sqm"
         : "Official rate pending";
@@ -5425,7 +5494,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                         '*Detected Area:* $_area sq.m\n'
                                         '*Estimated Govt Cost:* $costLabel\n'
                                         '*Govt Rate:* $rateLabel\n'
-                                        '*Source:* $_officialLandSource\n\n'
+                                        '*Penalty:* $penaltyLabel\n'
+                                        '*Total Liability:* $liabilityLabel\n\n'
                                         '$dispatchFinding\n\n'
                                         'Ref: GRV-AUDIT-449-A\n'
                                         '_Digitally generated by Gravity AI Engine_');
@@ -5484,6 +5554,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                         'GRAVITY AI NOTICE: ${hasFlaggedEncroachment ? 'Potential protected-boundary encroachment flagged' : 'Blue-boundary land review ready'} at ${_searchCtrl.text.toUpperCase()} '
                                         '(${_loc.latitude.toStringAsFixed(4)}, ${_loc.longitude.toStringAsFixed(4)}). '
                                         'Area: $_area sq.m | Govt cost: $costLabel | Rate: $rateLabel. '
+                                        'Penalty: $penaltyLabel | Total: $liabilityLabel. '
                                         'Ref: GRV-AUDIT-449-A');
                                     final smsUri =
                                         Uri.parse('sms:?body=$smsBody');
@@ -5540,7 +5611,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                         'Detected Area: $_area sq.m\n'
                                         'Estimated Govt Cost: $costLabel\n'
                                         'Govt Rate: $rateLabel\n'
-                                        'Source: $_officialLandSource\n'
+                                        'Penalty: $penaltyLabel\n'
+                                        'Total Liability: $liabilityLabel\n'
                                         'Confidence: ${_accuracy.toStringAsFixed(1)}%\n\n'
                                         '$_notice\n\n'
                                         '---\n'
@@ -5606,7 +5678,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                         'Detected Area: $_area sq.m\n'
                                         'Estimated Govt Cost: $costLabel\n'
                                         'Govt Rate: $rateLabel\n'
-                                        'Source: $_officialLandSource\n\n'
+                                        'Penalty: $penaltyLabel\n'
+                                        'Total Liability: $liabilityLabel\n\n'
                                         '$_notice\n\n'
                                         'Digitally generated by Gravity AI Engine';
                                     // Copy using JS clipboard API
@@ -6556,7 +6629,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                             pw.Bullet(
                                 text:
                                     'Govt Rate: Rs. ${_landRate.toStringAsFixed(0)}/sqm'),
-                            pw.Bullet(text: 'Source: $_officialLandSource'),
+                            pw.Bullet(
+                                text:
+                                    'Penalty Estimate: Rs. ${(_penalty / 100000).toStringAsFixed(1)} Lakhs'),
                           ])),
                   pw.SizedBox(height: 30),
                   pw.Text('COMPLIANCE NOTICE PREVIEW:',
